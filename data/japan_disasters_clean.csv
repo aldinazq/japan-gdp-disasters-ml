@@ -1,0 +1,128 @@
+japan_disasters_clean
+year;disaster_type;disaster_subtype;event_name;magnitude;magnitude_scale;deaths;damage_usd_thousands
+1990;Storm;Tropical cyclone;Flo;NA;Kph;40;4E+06
+1991;Storm;Tropical cyclone;Gladys;100;Kph;11;5000
+1991;Storm;Tropical cyclone;Caitlin;NA;Kph;0;81500
+1991;Storm;Tropical cyclone;Kinna;NA;Kph;6;0
+1991;Storm;Tropical cyclone;Luke;NA;Kph;18;0
+1991;Storm;Tropical cyclone;Mireille (n°19);NA;Kph;66;1E+07
+1992;Earthquake;Ground movement;NA;5.9;Moment Magnitude;0;0
+1992;Storm;Tropical cyclone;Yancy;180;Kph;11;0
+1993;Earthquake;Tsunami;Tsunami;7.8;Moment Magnitude;239;1E+06
+1993;Storm;Tropical cyclone;Yancy;180;Kph;48;1300000
+1993;Earthquake;Ground movement;NA;7.5;Moment Magnitude;2;358000
+1993;Storm;Tropical cyclone;Robyn;NA;Kph;47;450000
+1994;Storm;Tropical cyclone;Fred (9416);NA;Kph;0;6000
+1994;Earthquake;Ground movement;NA;7.5;Moment Magnitude;2;170400
+1994;Earthquake;Ground movement;NA;7.9;Moment Magnitude;5;0
+1994;Storm;Tropical cyclone;Orchid;NA;Kph;3;0
+1995;Earthquake;Ground movement;NA;7.2;Moment Magnitude;5297;1E+08
+1995;Earthquake;Ground movement;NA;5.3;Moment Magnitude;0;0
+1995;Storm;Tropical cyclone;Oscar;NA;Kph;3;9600
+1996;Storm;Tropical cyclone;Kirk;210;Kph;6;0
+1997;Storm;Tropical cyclone;Winnie;NA;Kph;3;1E+05
+1997;Storm;Tropical cyclone;Oliwa;125;Kph;4;0
+1998;Storm;Tropical cyclone;Rex;126;Kph;14;0
+1998;Storm;Tropical cyclone;Vicky (7) and Waldo (8);160;Kph;12;3E+06
+1998;Storm;Tropical cyclone;Zeb;280;Kph;12;335500
+1998;Storm;Tropical cyclone;Stella;NA;Kph;2;0
+1999;Storm;Tropical cyclone;Bart;238;Kph;26;5E+06
+2000;Earthquake;Ground movement;NA;6.1;Moment Magnitude;1;0
+2000;Storm;Tropical cyclone;Kirogi;126;Kph;4;3E+05
+2000;Storm;Tropical cyclone;Saomai;160;Kph;9;1400000
+2000;Earthquake;Ground movement;NA;6.7;Moment Magnitude;0;5E+05
+2001;Earthquake;Ground movement;NA;6.8;Moment Magnitude;2;5E+05
+2001;Storm;Tropical cyclone;Pabuk;109;Kph;9;8E+05
+2001;Storm;Tropical cyclone;Danas;126;Kph;7;5E+05
+2002;Storm;Tropical cyclone;Halong;108;Kph;0;0
+2002;Storm;Tropical cyclone;Chata'an;NA;Kph;5;5000
+2003;Earthquake;Ground movement;NA;7;Moment Magnitude;0;233000
+2003;Earthquake;Ground movement;NA;5.5;Moment Magnitude;0;411000
+2003;Storm;Tropical cyclone;Etau;145;Kph;20;55000
+2003;Storm;Tropical cyclone;Maemi;200;Kph;1;50000
+2003;Earthquake;Ground movement;NA;7.4;Moment Magnitude;2;563000
+2004;Storm;Tropical cyclone;Dianmu (Helen/09W);285;Kph;6;0
+2004;Storm;Tropical cyclone;Megi (Lawin/18W);126;Kph;11;5E+05
+2004;Storm;Tropical cyclone;Aere (Marce/20W);NA;Kph;2;500
+2004;Storm;Tropical cyclone;Chaba;126;Kph;14;2E+06
+2004;Storm;Tropical cyclone;Songda (Nina/22W);230;Kph;41;9E+06
+2004;Storm;Tropical cyclone;Meari (Quinta/25W);220;Kph;25;740000
+2004;Storm;Tropical cyclone;Ma-on (Rolly/26W);260;Kph;11;603000
+2004;Storm;Tropical cyclone;Tokage (Siony/27W);230;Kph;89;2300000
+2004;Earthquake;Ground movement;NA;6.6;Moment Magnitude;40;2.8e+07
+2005;Earthquake;Ground movement;NA;6.6;Moment Magnitude;1;4E+05
+2005;Earthquake;Ground movement;NA;5.5;Moment Magnitude;0;0
+2005;Storm;Tropical cyclone;Mawar;108;Kph;3;0
+2005;Storm;Tropical cyclone;Nabi (Jolina/14W);144;Kph;32;1E+06
+2006;Storm;Tropical cyclone;Shanshan (13);NA;Kph;10;2500000
+2007;Earthquake;Ground movement;NA;6.7;Moment Magnitude;1;250000
+2007;Earthquake;Ground movement;NA;6.6;Moment Magnitude;9;12500000
+2007;Storm;Tropical cyclone;Man-Yi;250;Kph;5;60000
+2007;Storm;Tropical cyclone;Wipha/Goring;NA;Kph;4;0
+2007;Storm;Tropical cyclone;Fitow (9);140;Kph;4;1E+06
+2007;Earthquake;Ground movement;NA;5.1;Moment Magnitude;0;0
+2008;Earthquake;Ground movement;NA;6.9;Moment Magnitude;23;167000
+2008;Earthquake;Ground movement;NA;6.8;Moment Magnitude;1;110000
+2009;Storm;Tropical cyclone;"Typhoon ""Etau""";NA;Kph;12;0
+2009;Earthquake;Tsunami;NA;6.2;Moment Magnitude;1;4E+05
+2009;Storm;Tropical cyclone;"TYphoon ""Melor""";220;Kph;4;1E+06
+2011;Earthquake;Tsunami;NA;9.1;Moment Magnitude;19846;2.1e+08
+2011;Earthquake;Ground movement;NA;7.1;Moment Magnitude;2;0
+2011;Storm;Tropical cyclone;Typhoon Roke;215;Kph;13;1820000
+2011;Storm;Tropical cyclone;Typhoon Talas;90;Kph;68;650000
+2012;Storm;Tropical cyclone;Typhoon Bolaven;NA;Kph;0;86000
+2012;Storm;Tropical cyclone;Typhoon Jelawat;126;Kph;2;27400
+2012;Storm;Tropical cyclone;Typhoon Sanba;NA;Kph;0;31000
+2013;Earthquake;Ground movement;NA;5.8;Moment Magnitude;0;0
+2013;Storm;Tropical cyclone;Typhoon Wipha;NA;Kph;39;2E+05
+2013;Storm;Tropical cyclone;Tropical storm Toraji;NA;Kph;1;2000
+2013;Storm;Tropical cyclone;Tropical storm Man-Yi;NA;Kph;6;2000
+2013;Storm;Tropical cyclone;Tropical storm Fitow;NA;Kph;0;0
+2014;Storm;Tropical cyclone;Typhoon Neoguri;130;Kph;7;156000
+2014;Storm;Tropical cyclone;Tropical storm Nakri;NA;Kph;0;0
+2014;Storm;Tropical cyclone;Typhoon Halong;160;Kph;10;2E+05
+2014;Storm;Tropical cyclone;Typhoon Vongfong;290;Kph;9;1E+05
+2014;Storm;Tropical cyclone;Typhoon Phanfone;110;Kph;7;1E+05
+2014;Earthquake;Ground movement;NA;6.2;Moment Magnitude;0;2000
+2015;Storm;Tropical cyclone;Typhoon Noul (Dodong);180;Kph;0;23200
+2015;Storm;Tropical cyclone;Typhoon Chan-Home;250;Kph;1;0
+2015;Storm;Tropical cyclone;Typhoon Nangka;185;Kph;2;207000
+2015;Storm;Tropical cyclone;Typhoon Goni (Ineng);198;Kph;0;0
+2015;Storm;Tropical cyclone;Tropical Storm Etau;NA;Kph;8;0
+2015;Storm;Tropical cyclone;Typhoon Dujuan;NA;Kph;0;0
+2016;Earthquake;Ground movement;NA;6.5;Moment Magnitude;9;3.8e+07
+2016;Earthquake;Ground movement;NA;7.3;Moment Magnitude;49;2E+07
+2016;Storm;Tropical cyclone;Typhoon Lionrock;NA;Kph;22;0
+2016;Storm;Tropical cyclone;Typhoon Chaba (Chyba?);NA;Kph;0;0
+2016;Storm;Tropical cyclone;Tropical storm Mindulle;NA;Kph;2;1E+05
+2016;Storm;Tropical cyclone;Typhoon Malakas;185;Kph;1;0
+2016;Earthquake;Ground movement;NA;6.2;Moment Magnitude;0;1E+05
+2017;Storm;Tropical cyclone;Typhoon 'Noru';120;Kph;2;2000
+2017;Storm;Tropical cyclone;Typhoon 'Lan'/'Paolo';216;Kph;8;1E+06
+2017;Storm;Tropical cyclone;Typhoon 'Talim';160;Kph;2;5E+05
+2018;Earthquake;Ground movement;NA;5.5;Moment Magnitude;5;3250000
+2018;Storm;Tropical cyclone;Typhoon Jebi;220;Kph;17;12500000
+2018;Earthquake;Ground movement;NA;6.6;Moment Magnitude;41;1250000
+2018;Storm;Tropical cyclone;Typhoon Trami;216;Kph;4;4500000
+2018;Storm;Tropical cyclone;Typhoon 'Kong-Rey';NA;Kph;3;0
+2019;Earthquake;Ground movement;NA;6.4;Moment Magnitude;0;0
+2019;Storm;Tropical cyclone;Tropical cyclone 'Lingling';NA;Kph;0;10000
+2019;Storm;Tropical cyclone;Tropical storm 'Tapah';NA;Kph;0;0
+2019;Storm;Tropical cyclone;Tropical cylone 'Hagibis';160;Kph;99;1.7e+07
+2019;Storm;Tropical cyclone;Typhoon 'Faxai';170;Kph;3;9100000
+2020;Storm;Tropical cyclone;Tropical cyclone 'Haishen' (Kristine);185;Kph;2;0
+2020;Storm;Tropical cyclone;Typhoon 'Maisak' (Julian);175;Kph;0;0
+2021;Earthquake;Ground movement;NA;7.1;Moment Magnitude;1;7700000
+2021;Earthquake;Ground movement;NA;7;Moment Magnitude;0;550000
+2022;Earthquake;Ground movement;NA;7.3;Moment Magnitude;3;8800000
+2022;Storm;Tropical cyclone;Tropical depression 'Aere';46;Kph;0;0
+2022;Storm;Tropical cyclone;Typhoon 'Nanmadol';175;Kph;5;2E+06
+2022;Storm;Tropical cyclone;Typhoon 'Talas';65;Kph;3;752000
+2023;Earthquake;Ground movement;NA;6.2;Moment Magnitude;1;0
+2023;Storm;Tropical cyclone;Typhoon 'Mawar';215;Kph;3;0
+2023;Storm;Tropical cyclone;Tropical cyclone 'Khanoun';220;Kph;2;0
+2023;Storm;Tropical cyclone;Typhoon 'Lan';NA;Kph;0;0
+2023;Storm;Tropical cyclone;Tropical storm 'Yun-Yeung';NA;Kph;3;0
+2024;Earthquake;Ground movement;NA;7.5;Moment Magnitude;551;1.5e+07
+2024;Storm;Tropical cyclone;Tropical cyclone 'Shanshan';215;Kph;9;5E+05
+2024;Storm;Tropical cyclone;Typhoon 'Pulasan';NA;Kph;9;0
