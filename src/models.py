@@ -1,4 +1,4 @@
-"""I train baseline and machine learning models to predict Japan's GDP growth from my yearly dataset."""
+"""I train baseline and machine learning models to predict Japan's GDP growth from my enriched yearly dataset."""
 
 from typing import Dict, Any
 
@@ -13,9 +13,24 @@ from src.features import build_master_table
 
 def make_dataset() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     df = build_master_table().sort_values("year").reset_index(drop=True)
+
     df["gdp_growth_lag1"] = df["gdp_growth"].shift(1)
+    df["n_events_lag1"] = df["n_events"].shift(1)
+    df["total_damage_lag1"] = df["total_damage"].shift(1)
+    df["log_total_damage_lag1"] = df["log_total_damage"].shift(1)
+    df["damage_share_gdp_lag1"] = df["damage_share_gdp"].shift(1)
+
     df = df.dropna().reset_index(drop=True)
-    feature_cols = ["gdp_growth_lag1", "n_events", "total_deaths", "total_damage", "avg_magnitude"]
+
+    feature_cols = [
+        "gdp_growth_lag1",
+        "n_events",
+        "n_events_lag1",
+        "total_damage_lag1",
+        "log_total_damage_lag1",
+        "damage_share_gdp_lag1",
+        "has_disaster",
+    ]
     X = df[feature_cols]
     y = df["gdp_growth"]
     return df, X, y
@@ -76,7 +91,7 @@ def run_all_models() -> pd.DataFrame:
         "test_R2": metrics_test_lr["R2"],
     }
 
-    ridge = Ridge(alpha=1.0)
+    ridge = Ridge(alpha=5.0)
     ridge.fit(X_train, y_train)
     y_pred_ridge_train = ridge.predict(X_train)
     y_pred_ridge_test = ridge.predict(X_test)
@@ -93,7 +108,7 @@ def run_all_models() -> pd.DataFrame:
 
     rf = RandomForestRegressor(
         n_estimators=200,
-        max_depth=None,
+        max_depth=4,
         random_state=42,
         min_samples_leaf=2,
     )
