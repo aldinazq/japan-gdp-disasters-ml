@@ -1,5 +1,6 @@
-"""I train baseline and machine learning models to predict Japan's GDP growth from my enriched yearly dataset."""
+"""I train baseline and machine learning models, then save metrics and predictions for my project."""
 
+from pathlib import Path
 from typing import Dict, Any
 
 import numpy as np
@@ -9,6 +10,10 @@ from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from src.features import build_master_table
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+RESULTS_DIR = PROJECT_ROOT / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
 
 
 def make_dataset() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
@@ -131,6 +136,28 @@ def run_all_models() -> pd.DataFrame:
         .T.reset_index()
         .rename(columns={"index": "model"})
     )
+
+    results_df.to_csv(RESULTS_DIR / "model_metrics.csv", index=False)
+
+    rf_train_df = pd.DataFrame(
+        {
+            "year": df.loc[X_train.index, "year"].values,
+            "gdp_growth_actual": y_train.values,
+            "gdp_growth_pred_rf": y_pred_rf_train,
+            "set": "train",
+        }
+    )
+    rf_test_df = pd.DataFrame(
+        {
+            "year": df.loc[X_test.index, "year"].values,
+            "gdp_growth_actual": y_test.values,
+            "gdp_growth_pred_rf": y_pred_rf_test,
+            "set": "test",
+        }
+    )
+    rf_pred_df = pd.concat([rf_train_df, rf_test_df], ignore_index=True)
+    rf_pred_df.to_csv(RESULTS_DIR / "random_forest_predictions.csv", index=False)
+
     return results_df
 
 
