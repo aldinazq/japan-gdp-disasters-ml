@@ -1,6 +1,7 @@
-"""I run the full pipeline and provide a small interactive CLI to inspect GDP growth predictions by year."""
+"""I run the full pipeline (main + robustness) and provide a small interactive CLI to inspect predictions by year."""
 
 from pathlib import Path
+import shutil
 
 import pandas as pd
 
@@ -8,12 +9,27 @@ from src.features import build_master_table
 from src.models import run_all_models
 
 PROJECT_ROOT = Path(__file__).resolve().parent
+RESULTS_DIR = PROJECT_ROOT / "results"
 
 
-def interactive_cli() -> None:
-    predictions_path = PROJECT_ROOT / "results" / "random_forest_predictions.csv"
+def _copy_results(suffix: str) -> None:
+    """I copy the default results files to versioned filenames so runs don't overwrite each other."""
+    RESULTS_DIR.mkdir(exist_ok=True)
+
+    src_metrics = RESULTS_DIR / "model_metrics.csv"
+    src_preds = RESULTS_DIR / "random_forest_predictions.csv"
+
+    if src_metrics.exists():
+        shutil.copyfile(src_metrics, RESULTS_DIR / f"model_metrics_{suffix}.csv")
+    if src_preds.exists():
+        shutil.copyfile(src_preds, RESULTS_DIR / f"random_forest_predictions_{suffix}.csv")
+
+
+def interactive_cli(predictions_file: str = "random_forest_predictions_main.csv") -> None:
+    """I let the user query predictions by year from a chosen predictions CSV."""
+    predictions_path = RESULTS_DIR / predictions_file
     if not predictions_path.exists():
-        print("\nNo predictions file found in results/random_forest_predictions.csv.")
+        print(f"\nNo predictions file found: results/{predictions_file}")
         print("Run the models first to generate predictions.")
         return
 
@@ -54,11 +70,30 @@ def main() -> None:
     print(df.head())
     print(f"\n{df.shape[0]} rows, {df.shape[1]} columns\n")
 
-    print("=== Model evaluation ===")
-    metrics = run_all_models()
-    print(metrics.to_string(index=False))
+    # -------------------------
+    # MAIN RUN (no oil): preferred because it usually keeps more years
+    # -------------------------
+    print("=== Model evaluation (MAIN: no oil) ===")
+    metrics_main = run_all_models(include_oil=False)
+    print(metrics_main.to_string(index=False))
+    _copy_results("main")
 
-    interactive_cli()
+    # -------------------------
+    # ROBUSTNESS RUN (with oil): may reduce the sample, used as a robustness check
+    # -------------------------
+    print("\n=== Model evaluation (ROBUSTNESS: with oil) ===")
+    metrics_robust = run_all_models(include_oil=True)
+    print(metrics_robust.to_string(index=False))
+    _copy_results("robust")
+
+    print("\nSaved results files:")
+    print(" - results/model_metrics_main.csv")
+    print(" - results/random_forest_predictions_main.csv")
+    print(" - results/model_metrics_robust.csv")
+    print(" - results/random_forest_predictions_robust.csv")
+
+    # Interactive uses the MAIN run by default
+    interactive_cli(predictions_file="random_forest_predictions_main.csv")
 
 
 if __name__ == "__main__":
