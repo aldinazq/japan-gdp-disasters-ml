@@ -1,14 +1,156 @@
-## Feature engineering and modeling choices
+# Japan GDP Growth Forecasting with Natural Disasters (Machine Learning Project)
 
-The main target of the project is annual GDP growth for Japan. I started from a simple specification using only last year’s GDP growth and yearly disaster aggregates. I then improved the feature set to better capture the economic effect of natural disasters.
+This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged natural-disaster aggregates** (EM-DAT) and optional **macro/oil controls**. The project is **predictive (not causal)** and follows **time-series validation** best practices (no random shuffling).
 
-In the final version, the yearly dataset includes, in addition to GDP and GDP growth:
-- `n_events`: number of disasters in a given year,
-- `total_deaths`: total deaths from disasters,
-- `total_damage`: total economic damage in thousand USD,
-- `avg_magnitude`: average magnitude of recorded events,
-- `log_total_damage`: log-transformed damages to reduce the impact of extreme values,
-- `damage_share_gdp`: damages scaled by the level of GDP (relative intensity of disasters),
-- `has_disaster`: indicator for whether at least one disaster occurred in a year.
+---
 
-I also include lagged versions of some variables (for example `gdp_growth_lag1`, `n_events_lag1`, `log_total_damage_lag1`, `damage_share_gdp_lag1`) to allow the models to capture delayed effects of disasters on GDP growth.
+## Prediction Task
+
+- **Target:** `gdp_growth` in year **t** (annual %, Japan)
+- **Horizon:** one-year-ahead forecasting
+- **Strict ex-ante setup:** to predict `gdp_growth_t`, the model uses only information observable at **t−1**:
+  - lagged GDP dynamics: `gdp_growth_lag1`, `gdp_growth_lag2`, rolling mean/std based on past values
+  - lagged disaster aggregates: number of events, deaths, damage, magnitude (all at t−1)
+  - optional lagged macro controls (WDI): inflation, unemployment, exports/GDP, investment/GDP, FX (all at t−1)
+  - optional lagged oil controls: oil price and oil price change (all at t−1)
+
+**COVID handling (forecast vs ex-post):**
+- `strict`: excludes `covid_dummy` (not observable ex-ante at t−1 to forecast 2020)
+- `ex_post`: includes `covid_dummy` for robustness/explanation (explicitly not strict forecasting)
+
+---
+
+## Repository Structure
+
+```text
+.
+├── AI_USAGE.md
+├── PROPOSAL.md
+├── README.md
+├── main.py
+├── requirements.txt
+├── data/
+├── results/
+├── dashboard/
+│   └── build_dashboard.py
+├── src/
+│   ├── __init__.py
+│   ├── data_loading.py
+│   ├── features.py
+│   └── models.py
+└── tests/
+    ├── test_features.py
+    ├── test_models.py
+    └── test_pipeline.py
+- `src/data_loading.py`: loads Excel inputs from `data/`
+- `src/features.py`: builds the yearly master table and derived features
+- `src/models.py`: trains models, runs time-series CV, and writes outputs to `results/`
+- `main.py`: CLI entry point to run benchmarks (non-interactive)
+- `script/dashboard.py`: optional dashboard script
+- `tests/`: unit tests for data integrity and pipeline reproducibility
+
+---
+
+## Data
+
+Input files are stored in `data/` (Excel):
+
+- World Bank GDP and GDP growth (Japan)
+- EM-DAT disasters for Japan (event-level, aggregated to yearly)
+- WDI macro indicators (inflation, unemployment, exports, investment, FX)
+- Oil price series
+
+**Unit note:** EM-DAT damages are typically provided as `"Total Damage ('000 US$)"` (thousands of USD). This project converts them to **USD** for consistency.
+
+---
+
+## Setup
+
+Create and activate a virtual environment, then install dependencies:
+
+1) Create venv  
+`python3 -m venv .venv`
+
+2) Activate  
+`source .venv/bin/activate`
+
+3) Install  
+`python -m pip install --upgrade pip`  
+`pip install -r requirements.txt`
+
+---
+
+## Run the Project
+
+- Default run:  
+  `python3 main.py`
+
+- Main benchmark: strict one-year-ahead forecast:  
+  `python3 main.py --mode forecast --covid-mode strict`
+
+- Ex-post mode (for explanation/robustness only):  
+  `python3 main.py --mode forecast --covid-mode ex_post`
+
+- Nowcast mode (optional):  
+  `python3 main.py --mode nowcast --covid-mode strict`
+
+- Only run the main block (skip additional robustness runs):  
+  `python3 main.py --only-main`
+
+- Hyperparameter tuning (optional):  
+  `python3 main.py --tune-rf`  
+  `python3 main.py --tune-gb`
+
+- Change the test split ratio:  
+  `python3 main.py --test-ratio 0.25`
+
+---
+
+## Outputs (saved in `results/`)
+
+For each run, the pipeline writes files tagged by configuration (e.g., `run_forecast_strict_main`):
+
+- `model_metrics_<tag>.csv`: train/test metrics for each model (RMSE, MAE, R²) + diagnostics
+- `cv_scores_<tag>.csv`: fold-level TimeSeriesSplit metrics on the training set
+
+Optional (if tuning is enabled):
+
+- `best_params_random_forest_<tag>.csv`
+- `best_params_gradient_boosting_<tag>.csv`
+
+### Post-disaster diagnostics (added value)
+
+In addition to overall test performance, the project reports performance for:
+
+- **post-disaster years:** years where `n_events_lag1 > 0`
+- **severe disasters:** defined using a **train-only** threshold on `damage_share_gdp_lag1` (to avoid leakage)
+
+---
+
+## Dashboard (Optional)
+
+Run the dashboard:  
+`streamlit run script/dashboard.py`
+
+If `streamlit` is not installed:  
+`pip install streamlit altair`
+
+---
+
+## Run Tests
+
+`./.venv/bin/python -m unittest discover -s tests -p "test_*.py" -v`
+
+---
+
+## Reproducibility Notes
+
+- No shuffling is used for evaluation (time-based splits only).
+- Randomized models use a fixed seed when applicable (`random_state=42`).
+- Missing values are handled through imputation inside model pipelines.
+
+---
+
+## AI Tool Usage
+
+AI usage disclosure is provided in `AI_USAGE.md`.
