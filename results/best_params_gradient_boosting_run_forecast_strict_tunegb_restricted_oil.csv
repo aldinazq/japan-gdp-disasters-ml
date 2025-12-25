@@ -1,0 +1,2 @@
+model__l2_regularization,model__learning_rate,model__max_depth,model__max_iter,model__min_samples_leaf
+0.0,0.01,2,400,20

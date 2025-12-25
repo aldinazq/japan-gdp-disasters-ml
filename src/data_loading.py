@@ -1,4 +1,4 @@
-"""I load and reshape GDP, GDP growth, disasters, and extra macro indicators into tidy pandas DataFrames for my Japan project."""
+"""I load and reshape GDP, GDP growth, disasters, and macro indicators into tidy pandas DataFrames for my Japan project."""
 
 from __future__ import annotations
 
@@ -46,7 +46,12 @@ def load_gdp_growth_japan_raw() -> pd.DataFrame:
 
 
 def load_japan_disasters_raw() -> pd.DataFrame:
-    """I load raw EM-DAT disasters for Japan and return a cleaned event-level DataFrame."""
+    """
+    I load raw EM-DAT disasters for Japan and return a cleaned event-level DataFrame.
+
+    Important: EM-DAT provides damages in "Total Damage ('000 US$)" (thousands of USD).
+    I keep that column as damage_usd_thousands and also create damage_usd in USD.
+    """
     path = DATA_DIR / "Natural_disasters_Japan.xlsx"
     df = pd.read_excel(path, sheet_name="EM-DAT Data")
 
@@ -77,10 +82,17 @@ def load_japan_disasters_raw() -> pd.DataFrame:
     df = df.dropna(subset=["year"]).copy()
     df["year"] = df["year"].astype(int)
 
-    # Coerce numeric columns
+    # Coerce numeric columns (keep NaN = "unknown", do not force to 0 here)
     df["deaths"] = pd.to_numeric(df["deaths"], errors="coerce")
     df["damage_usd_thousands"] = pd.to_numeric(df["damage_usd_thousands"], errors="coerce")
     df["magnitude"] = pd.to_numeric(df["magnitude"], errors="coerce")
+
+    # ✅ Convert to USD (this is the key fix for coherence across the project)
+    df["damage_usd"] = df["damage_usd_thousands"] * 1000.0
+
+    # Optional: negative damages are not meaningful → set to NaN
+    df.loc[df["damage_usd"] < 0, "damage_usd"] = pd.NA
+    df.loc[df["damage_usd_thousands"] < 0, "damage_usd_thousands"] = pd.NA
 
     return df.reset_index(drop=True)
 
@@ -96,7 +108,6 @@ def _load_wdi_extract(file_name: str, value_name: str) -> pd.DataFrame:
 
     df = pd.read_excel(path, sheet_name="Data")
     if "Series Code" not in df.columns or "Country Code" not in df.columns:
-        # Some WDI extracts have metadata rows at the top
         df = pd.read_excel(path, sheet_name="Data", skiprows=3)
 
     df = df[df["Series Code"].notna()].copy()
@@ -111,9 +122,7 @@ def _load_wdi_extract(file_name: str, value_name: str) -> pd.DataFrame:
         value_name=value_name,
     )
 
-    # Convert WDI missing marker ".." (and any non-numeric) to NaN
     long[value_name] = pd.to_numeric(long[value_name], errors="coerce")
-
     long["year"] = long["year_raw"].str.extract(r"\[YR(\d{4})\]")[0].astype(int)
     long = long.dropna(subset=[value_name])
 

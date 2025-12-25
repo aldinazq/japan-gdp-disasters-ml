@@ -13,11 +13,19 @@ from src.data_loading import (
 
 
 def build_disaster_features(disasters: pd.DataFrame) -> pd.DataFrame:
-    """I aggregate raw disaster events into yearly features (counts, deaths, damages, magnitude)."""
+    """
+    I aggregate raw disaster events into yearly features (counts, deaths, damages, magnitude).
+
+    Convention:
+    - total_damage is in USD (not thousands)
+    """
     df = disasters.copy()
 
-    # Ensure required columns exist (and are numeric)
-    required = ["year", "deaths", "damage_usd_thousands", "magnitude"]
+    # Backward compatible: if only thousands exist, convert to USD here
+    if "damage_usd" not in df.columns and "damage_usd_thousands" in df.columns:
+        df["damage_usd"] = pd.to_numeric(df["damage_usd_thousands"], errors="coerce") * 1000.0
+
+    required = ["year", "deaths", "damage_usd", "magnitude"]
     missing = [c for c in required if c not in df.columns]
     if missing:
         raise ValueError(
@@ -27,7 +35,7 @@ def build_disaster_features(disasters: pd.DataFrame) -> pd.DataFrame:
 
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
     df["deaths"] = pd.to_numeric(df["deaths"], errors="coerce").fillna(0)
-    df["damage_usd_thousands"] = pd.to_numeric(df["damage_usd_thousands"], errors="coerce").fillna(0)
+    df["damage_usd"] = pd.to_numeric(df["damage_usd"], errors="coerce").fillna(0)
     df["magnitude"] = pd.to_numeric(df["magnitude"], errors="coerce").fillna(0)
 
     df = df.dropna(subset=["year"])
@@ -38,7 +46,7 @@ def build_disaster_features(disasters: pd.DataFrame) -> pd.DataFrame:
         .agg(
             n_events=("year", "count"),
             total_deaths=("deaths", "sum"),
-            total_damage=("damage_usd_thousands", "sum"),
+            total_damage=("damage_usd", "sum"),  # ✅ USD
             avg_magnitude=("magnitude", "mean"),
         )
         .sort_values("year")
@@ -71,11 +79,11 @@ def build_master_table() -> pd.DataFrame:
     master = master.merge(macros, on="year", how="left")
     master = master.merge(oil, on="year", how="left")
 
-    # Derived features
+    # Derived features (now total_damage is USD)
     master["log_total_damage"] = np.log1p(master["total_damage"])
     master["damage_share_gdp"] = np.where(
         master["gdp"] > 0,
-        (master["total_damage"] * 1000.0) / master["gdp"],
+        master["total_damage"] / master["gdp"],  # ✅ no *1000 anymore
         0.0,
     )
     master["has_disaster"] = (master["n_events"] > 0).astype(int)

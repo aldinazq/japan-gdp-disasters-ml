@@ -1,99 +1,188 @@
-"""I run the full pipeline (main + robustness) and provide a small interactive CLI to inspect predictions by year."""
+"""
+I run the forecasting benchmark from the command line (non-interactive), with strict vs ex-post COVID handling
+and optional hyperparameter tuning for Random Forest and Gradient Boosting.
+"""
 
+from __future__ import annotations
+
+import argparse
 from pathlib import Path
-import shutil
+from typing import Optional
 
 import pandas as pd
 
-from src.features import build_master_table
 from src.models import run_all_models
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 RESULTS_DIR = PROJECT_ROOT / "results"
+RESULTS_DIR.mkdir(exist_ok=True)
 
 
-def _copy_results(suffix: str) -> None:
-    """I copy the default results files to versioned filenames so runs don't overwrite each other."""
-    RESULTS_DIR.mkdir(exist_ok=True)
-
-    src_metrics = RESULTS_DIR / "model_metrics.csv"
-    src_preds = RESULTS_DIR / "random_forest_predictions.csv"
-
-    if src_metrics.exists():
-        shutil.copyfile(src_metrics, RESULTS_DIR / f"model_metrics_{suffix}.csv")
-    if src_preds.exists():
-        shutil.copyfile(src_preds, RESULTS_DIR / f"random_forest_predictions_{suffix}.csv")
+def _print_block(title: str, df: pd.DataFrame) -> None:
+    print("\n" + "=" * 90)
+    print(title)
+    print("=" * 90)
+    with pd.option_context("display.max_columns", 200, "display.width", 140):
+        print(df.to_string(index=False))
 
 
-def interactive_cli(predictions_file: str = "random_forest_predictions_main.csv") -> None:
-    """I let the user query predictions by year from a chosen predictions CSV."""
-    predictions_path = RESULTS_DIR / predictions_file
-    if not predictions_path.exists():
-        print(f"\nNo predictions file found: results/{predictions_file}")
-        print("Run the models first to generate predictions.")
-        return
+def _covid_mode_to_include_covid(covid_mode: str) -> bool:
+    if covid_mode == "strict":
+        return False
+    if covid_mode == "ex_post":
+        return True
+    raise ValueError("covid_mode must be 'strict' or 'ex_post'.")
 
-    pred_df = pd.read_csv(predictions_path)
-    print("\n=== Interactive: Random Forest prediction vs actual by year ===")
-    print(
-        "Type a year between {} and {}, or 'q' to quit.".format(
-            int(pred_df["year"].min()), int(pred_df["year"].max())
-        )
+
+def _run_one(
+    *,
+    title: str,
+    tag: str,
+    mode: str,
+    covid_mode: str,
+    start_year: Optional[int],
+    test_ratio: float,
+    tune_rf: bool,
+    tune_gb: bool,
+    include_macro: bool,
+    include_oil: bool,
+) -> pd.DataFrame:
+    include_covid = _covid_mode_to_include_covid(covid_mode)
+
+    df = run_all_models(
+        include_oil=include_oil,
+        include_macro=include_macro,
+        include_covid=include_covid,
+        start_year=start_year,
+        test_ratio=test_ratio,
+        tune_rf=tune_rf,
+        tune_gb=tune_gb,
+        mode=mode,
+        tag=tag,
+    )
+    _print_block(title, df)
+    return df
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="Japan GDP vs disasters ML benchmark (forecast/nowcast).")
+
+    p.add_argument(
+        "--mode",
+        choices=["forecast", "nowcast"],
+        default="forecast",
+        help="forecast uses only t-1 predictors; nowcast may add current-year disaster info (not strict forecasting).",
     )
 
-    while True:
-        user_inp = input("Year (or q to quit): ").strip()
-        if user_inp.lower() in {"q", "quit", "exit"}:
-            print("Exiting interactive mode.")
-            break
+    p.add_argument(
+        "--covid-mode",
+        choices=["strict", "ex_post"],
+        default="strict",
+        help="strict excludes covid_dummy (not observable ex-ante); ex_post includes it for explanation/robustness.",
+    )
 
-        try:
-            year = int(user_inp)
-        except ValueError:
-            print("Please enter a valid integer year.")
-            continue
+    p.add_argument("--tune-rf", action="store_true", help="Tune Random Forest with TimeSeriesSplit CV.")
+    p.add_argument("--tune-gb", action="store_true", help="Tune Gradient Boosting with TimeSeriesSplit CV.")
 
-        row = pred_df[pred_df["year"] == year]
-        if row.empty:
-            print("No data available for that year.")
-            continue
+    p.add_argument("--test-ratio", type=float, default=0.2, help="Test split size (time-based). Default: 0.2")
 
-        row = row.iloc[0]
-        print(f"\nYear {year} [{row['set']}]")
-        print(f"  Actual GDP growth:         {row['gdp_growth_actual']:.2f}%")
-        print(f"  Predicted (Random Forest): {row['gdp_growth_pred_rf']:.2f}%\n")
+    p.add_argument(
+        "--main-start-year",
+        type=int,
+        default=None,
+        help="Optional start year for MAIN sample. Default: no restriction.",
+    )
+
+    p.add_argument(
+        "--restricted-start-year",
+        type=int,
+        default=1992,
+        help="Start year for RESTRICTED sample. Default: 1992",
+    )
+
+    p.add_argument(
+        "--only-main",
+        action="store_true",
+        help="Run only the MAIN benchmark (skip restricted/macro/oil blocks).",
+    )
+
+    p.add_argument(
+        "--tag-prefix",
+        type=str,
+        default="run",
+        help="Prefix used for saved results files (results/model_metrics_<tag>.csv).",
+    )
+
+    return p
 
 
 def main() -> None:
-    df = build_master_table()
-    print("=== Master dataset ===")
-    print(df.head())
-    print(f"\n{df.shape[0]} rows, {df.shape[1]} columns\n")
+    parser = build_parser()
+    args = parser.parse_args()
 
-    # -------------------------
-    # MAIN RUN (no oil): preferred because it usually keeps more years
-    # -------------------------
-    print("=== Model evaluation (MAIN: no oil) ===")
-    metrics_main = run_all_models(include_oil=False)
-    print(metrics_main.to_string(index=False))
-    _copy_results("main")
+    base = f"{args.tag_prefix}_{args.mode}_{args.covid_mode}"
+    if args.tune_rf:
+        base += "_tunerf"
+    if args.tune_gb:
+        base += "_tunegb"
 
-    # -------------------------
-    # ROBUSTNESS RUN (with oil): may reduce the sample, used as a robustness check
-    # -------------------------
-    print("\n=== Model evaluation (ROBUSTNESS: with oil) ===")
-    metrics_robust = run_all_models(include_oil=True)
-    print(metrics_robust.to_string(index=False))
-    _copy_results("robust")
+    # MAIN (no macro/oil)
+    _run_one(
+        title=f"MAIN (no macro/oil) | mode={args.mode} | covid={args.covid_mode} | start_year={args.main_start_year}",
+        tag=f"{base}_main",
+        mode=args.mode,
+        covid_mode=args.covid_mode,
+        start_year=args.main_start_year,
+        test_ratio=args.test_ratio,
+        tune_rf=args.tune_rf,
+        tune_gb=args.tune_gb,
+        include_macro=False,
+        include_oil=False,
+    )
 
-    print("\nSaved results files:")
-    print(" - results/model_metrics_main.csv")
-    print(" - results/random_forest_predictions_main.csv")
-    print(" - results/model_metrics_robust.csv")
-    print(" - results/random_forest_predictions_robust.csv")
+    if not args.only_main:
+        # RESTRICTED (no macro/oil)
+        _run_one(
+            title=f"RESTRICTED (no macro/oil) | mode={args.mode} | covid={args.covid_mode} | start_year={args.restricted_start_year}",
+            tag=f"{base}_restricted",
+            mode=args.mode,
+            covid_mode=args.covid_mode,
+            start_year=args.restricted_start_year,
+            test_ratio=args.test_ratio,
+            tune_rf=args.tune_rf,
+            tune_gb=args.tune_gb,
+            include_macro=False,
+            include_oil=False,
+        )
 
-    # Interactive uses the MAIN run by default
-    interactive_cli(predictions_file="random_forest_predictions_main.csv")
+        # RESTRICTED + MACRO
+        _run_one(
+            title=f"RESTRICTED + MACRO | mode={args.mode} | covid={args.covid_mode} | start_year={args.restricted_start_year}",
+            tag=f"{base}_restricted_macro",
+            mode=args.mode,
+            covid_mode=args.covid_mode,
+            start_year=args.restricted_start_year,
+            test_ratio=args.test_ratio,
+            tune_rf=args.tune_rf,
+            tune_gb=args.tune_gb,
+            include_macro=True,
+            include_oil=False,
+        )
+
+        # RESTRICTED + OIL
+        _run_one(
+            title=f"RESTRICTED + OIL | mode={args.mode} | covid={args.covid_mode} | start_year={args.restricted_start_year}",
+            tag=f"{base}_restricted_oil",
+            mode=args.mode,
+            covid_mode=args.covid_mode,
+            start_year=args.restricted_start_year,
+            test_ratio=args.test_ratio,
+            tune_rf=args.tune_rf,
+            tune_gb=args.tune_gb,
+            include_macro=False,
+            include_oil=True,
+        )
 
 
 if __name__ == "__main__":

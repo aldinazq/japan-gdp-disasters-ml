@@ -1,6 +1,6 @@
 # Japan GDP Growth Forecasting with Natural Disasters (Machine Learning Project)
 
-This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged natural-disaster aggregates** (EM-DAT) and optional **macro/oil controls**. The project is **predictive (not causal)** and follows **time-series validation** best practices (no random shuffling).
+This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged natural-disaster aggregates** (EM-DAT) and optional **macro/oil controls**. The project is **predictive** and follows **time-series validation** best practices (no random shuffling).
 
 ---
 
@@ -42,11 +42,12 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
     ├── test_features.py
     ├── test_models.py
     └── test_pipeline.py
+
 - `src/data_loading.py`: loads Excel inputs from `data/`
 - `src/features.py`: builds the yearly master table and derived features
 - `src/models.py`: trains models, runs time-series CV, and writes outputs to `results/`
 - `main.py`: CLI entry point to run benchmarks (non-interactive)
-- `script/dashboard.py`: optional dashboard script
+- `dashboard/build_dashboard.py`: optional dashboard script
 - `tests/`: unit tests for data integrity and pipeline reproducibility
 
 ---
