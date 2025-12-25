@@ -43,6 +43,7 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
     ├── test_models.py
     └── test_pipeline.py
 
+
 - `src/data_loading.py`: loads Excel inputs from `data/`
 - `src/features.py`: builds the yearly master table and derived features
 - `src/models.py`: trains models, runs time-series CV, and writes outputs to `results/`
@@ -130,11 +131,12 @@ In addition to overall test performance, the project reports performance for:
 
 ## Dashboard (Optional)
 
-Run the dashboard:  
-`streamlit run script/dashboard.py`
+Generate the HTML dashboard (reads saved outputs from `results/`):
 
-If `streamlit` is not installed:  
-`pip install streamlit altair`
+`python3 dashboard/build_dashboard.py --tag forecast_strict_main`
+
+It writes an HTML file (e.g., `dashboard/dashboard_<tag>.html`).
+
 
 ---
 
