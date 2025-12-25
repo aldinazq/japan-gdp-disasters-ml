@@ -509,7 +509,7 @@ def run_all_models(
     mask_multi_event = n_events_te >= 2
 
     def add_row(model_name: str, yhat_tr: np.ndarray, yhat_te: np.ndarray) -> None:
-        # ✅ NEW: explicitly report how many predictions were non-finite before fallback
+        # NEW: explicitly report how many predictions were non-finite before fallback
         raw_tr = np.asarray(yhat_tr, dtype=float)
         raw_te = np.asarray(yhat_te, dtype=float)
         n_bad_tr = int((~np.isfinite(raw_tr)).sum())
@@ -531,7 +531,7 @@ def run_all_models(
                 "test_MAE": float(mean_absolute_error(y_test, yhat_te_s)),
                 "test_RMSE": _rmse(y_test, yhat_te_s),
                 "test_R2": float(r2_score(y_test, yhat_te_s)),
-                # ✅ NEW: diagnostic columns
+                # NEW: diagnostic columns
                 "n_nonfinite_pred_train": n_bad_tr,
                 "n_nonfinite_pred_test": n_bad_te,
                 # any-disaster

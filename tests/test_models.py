@@ -28,15 +28,15 @@ class TestModels(unittest.TestCase):
         for fn in [
             f"model_metrics_{cls.tag}.csv",
             f"cv_scores_{cls.tag}.csv",
-            f"random_forest_predictions_{cls.tag}.csv",  # optional artifact
-            f"rf_actual_vs_pred_{cls.tag}.png",          # optional artifact
+            f"random_forest_predictions_{cls.tag}.csv",  
+            f"rf_actual_vs_pred_{cls.tag}.png",          
         ]:
             path = results_dir / fn
             if path.exists():
                 path.unlink()
 
         # Run once for all tests (fastest)
-        # Some repos may have slightly different run_all_models signatures, so we keep this robust.
+        # Some repos may have slightly different run_all_models signatures, so I keep this robust.
         try:
             cls.metrics = run_all_models(
                 include_oil=False,
@@ -76,12 +76,11 @@ class TestModels(unittest.TestCase):
 
     def test_outputs_written(self) -> None:
         """
-        Core outputs must exist for the project pipeline.
-        Model-specific artifacts (like RF predictions) are optional and should not be required by the test.
+
         """
         results_dir = ROOT_DIR / "results"
 
-        # ✅ Core artifacts (always produced)
+        # Core artifacts (always produced)
         self.assertTrue((results_dir / f"model_metrics_{self.tag}.csv").exists())
         self.assertTrue((results_dir / f"cv_scores_{self.tag}.csv").exists())
 

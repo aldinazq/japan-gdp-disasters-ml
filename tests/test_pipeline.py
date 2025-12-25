@@ -32,7 +32,7 @@ class TestPipeline(unittest.TestCase):
     def test_time_split_no_shuffle(self) -> None:
         df, X, y = make_dataset(include_oil=False, mode="forecast")
 
-        # ✅ Compatible with BOTH versions:
+        # Compatible with BOTH versions:
         # - old: time_train_test_split(df, X, y, test_ratio=0.2)
         # - new: time_train_test_split(X, y, test_ratio=0.2)
         sig = inspect.signature(time_train_test_split)
