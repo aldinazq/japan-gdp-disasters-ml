@@ -98,26 +98,30 @@ Create and activate a virtual environment, then install dependencies:
 ## Run the Project
 
 - Default run:  
-  `python3 main.py`
+  `./.venv/bin/python main.py`
 
 - Main benchmark: strict one-year-ahead forecast:  
-  `python3 main.py --mode forecast --covid-mode strict`
+  `./.venv/bin/python main.py --mode forecast --covid-mode strict`
 
 - Ex-post mode (for explanation/robustness only):  
-  `python3 main.py --mode forecast --covid-mode ex_post`
+  `./.venv/bin/python main.py --mode forecast --covid-mode ex_post`
 
 - Nowcast mode (optional):  
-  `python3 main.py --mode nowcast --covid-mode strict`
+  `./.venv/bin/python main.py --mode nowcast --covid-mode strict`
+
+- Nowcast ex-post (optional):  
+  `./.venv/bin/python main.py --mode nowcast --covid-mode ex_post`
 
 - Only run the main block (skip additional robustness runs):  
-  `python3 main.py --only-main`
+  `./.venv/bin/python main.py --only-main`
 
 - Hyperparameter tuning (optional):  
-  `python3 main.py --tune-rf`  
-  `python3 main.py --tune-gb`
+  `./.venv/bin/python main.py --tune-rf`  
+  `./.venv/bin/python main.py --tune-gb`
 
 - Change the test split ratio:  
-  `python3 main.py --test-ratio 0.25`
+  `./.venv/bin/python main.py --test-ratio 0.25`
+
 
 ---
 
@@ -148,7 +152,9 @@ In addition to overall test performance, the project reports performance for:
 
 Generate the HTML dashboard (reads saved outputs from `results/`):
 
-`python3 dashboard/build_dashboard.py --tag run_forecast_strict_main`
+`./.venv/bin/python dashboard/build_dashboard.py --tag run_forecast_strict_main`  
+`open dashboard/*.html`
+
 
 It writes an HTML file (e.g., `dashboard/dashboard_<tag>.html`).
 
@@ -158,7 +164,7 @@ It writes an HTML file (e.g., `dashboard/dashboard_<tag>.html`).
 
 Generate PNG figures for the report (saved to `figures/`):
 
-`python3 scripts/make_report_figures.py --tag run_forecast_strict_main`
+`./.venv/bin/python scripts/make_report_figures.py --tag run_forecast_strict_main`
 
 Then check:
 
@@ -169,7 +175,7 @@ Then check:
 
 ## Run Tests
 
-`python -m unittest discover -s tests -p "test_*.py" -v`
+`./.venv/bin/python -m unittest discover -s tests -p "test_*.py" -v`
 
 
 ---
