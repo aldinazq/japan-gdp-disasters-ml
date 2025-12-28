@@ -152,11 +152,16 @@ In addition to overall test performance, the project reports performance for:
 
 Generate the HTML dashboard (reads saved outputs from `results/`):
 
-`./.venv/bin/python dashboard/build_dashboard.py --tag run_forecast_strict_main`  
+`./.venv/bin/python dashboard/build_dashboard.py`
+
+Open all dashboards:
+
 `open dashboard/*.html`
 
+(Option) Build a dashboard for a specific run tag:
 
-It writes an HTML file (e.g., `dashboard/dashboard_<tag>.html`).
+`./.venv/bin/python dashboard/build_dashboard.py --tag run_forecast_strict_main`
+
 
 ---
 
