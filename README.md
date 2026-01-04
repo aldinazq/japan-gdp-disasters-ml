@@ -1,7 +1,6 @@
 # Japan GDP Growth Forecasting with Natural Disasters (Machine Learning Project)
 
-This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged natural-disaster aggregates** (EM-DAT) and optional **macro/oil controls**. The project is **predictive** and follows **time-series validation** best practices (no random shuffling). **Final report:** `project_report.pdf` (LaTeX sources in `report/`).
-
+This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged disaster aggregates** (EM-DAT) and macro controls. The project emphasizes **time-series validation** best practices (no random shuffling). **Final report:** `project_report.pdf` (LaTeX sources in `report/`).
 
 ---
 
@@ -15,9 +14,7 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
   - optional lagged macro controls (WDI): inflation, unemployment, exports/GDP, investment/GDP, FX (all at t−1)
   - optional lagged oil controls: oil price and oil price change (all at t−1)
 
-**COVID handling (forecast vs ex-post):**
-- `strict`: excludes `covid_dummy` (not observable ex-ante at t−1 to forecast 2020)
-- `ex_post`: includes `covid_dummy` for robustness/explanation (explicitly not strict forecasting)
+---
 
 ---
 
@@ -50,9 +47,8 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
 └── tests/
     ├── test_features.py
     ├── test_pipeline.py
-    └── test_models.py
-    
-```
+    └── test_models.py```
+
 
 
 Key modules:
@@ -72,10 +68,25 @@ Input files are stored in `data/` (Excel):
 
 - World Bank GDP and GDP growth (Japan)
 - EM-DAT disasters for Japan (event-level, aggregated to yearly)
-- WDI macro indicators (inflation, unemployment, exports, investment, FX)
+- WDI macro indicators (inflation, unemployment, exports/GDP, investment/GDP, FX)
 - Oil price series
 
-**Unit note:** EM-DAT damages are typically provided as `"Total Damage ('000 US$)"` (thousands of USD). This project converts them to **USD** for consistency.
+**Unit note:** EM-DAT damages are commonly reported in *thousands of USD* (often shown as “'000 US$”). This project converts them to **USD** for consistency.
+
+---
+
+## Setup
+
+## Quickstart (grader-safe)
+
+If you want the shortest, safest run (recommended for graders):
+
+```
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 -m pytest -q
+python3 main.py --only-main
 
 ---
 
@@ -90,37 +101,37 @@ Create and activate a virtual environment, then install dependencies:
 `source .venv/bin/activate`
 
 3) Install  
-`python -m pip install --upgrade pip`  
-`pip install -r requirements.txt`
+`python3 -m pip install --upgrade pip`  
+`python3 -m pip install -r requirements.txt`
 
 ---
 
 ## Run the Project
 
 - Default run:  
-  `./.venv/bin/python main.py`
+  `python3 main.py`
 
 - Main benchmark: strict one-year-ahead forecast:  
-  `./.venv/bin/python main.py --mode forecast --covid-mode strict`
+  `python3 main.py --mode forecast --covid-mode strict`
 
 - Ex-post mode (for explanation/robustness only):  
-  `./.venv/bin/python main.py --mode forecast --covid-mode ex_post`
+  `python3 main.py --mode forecast --covid-mode ex_post`
 
 - Nowcast mode (optional):  
-  `./.venv/bin/python main.py --mode nowcast --covid-mode strict`
+  `python3 main.py --mode nowcast --covid-mode strict`
 
 - Nowcast ex-post (optional):  
-  `./.venv/bin/python main.py --mode nowcast --covid-mode ex_post`
+  `python3 main.py --mode nowcast --covid-mode ex_post`
 
 - Only run the main block (skip additional robustness runs):  
-  `./.venv/bin/python main.py --only-main`
+  `python3 main.py --only-main`
 
 - Hyperparameter tuning (optional):  
-  `./.venv/bin/python main.py --tune-rf`  
-  `./.venv/bin/python main.py --tune-gb`
+  `python3 main.py --tune-rf`  
+  `python3 main.py --tune-gb`
 
 - Change the test split ratio:  
-  `./.venv/bin/python main.py --test-ratio 0.25`
+  `python3 main.py --test-ratio 0.25`
 
 
 ---
@@ -144,7 +155,7 @@ Optional (if tuning is enabled):
 In addition to overall test performance, the project reports performance for:
 
 - **post-disaster years:** years where `n_events_lag1 > 0`
-- **severe disasters:** defined using a **train-only** threshold on `damage_share_gdp_lag1` (to avoid leakage)
+- **severe disasters:** defined using a train-only quantile threshold (q = 0.75) on damage_share_gdp_lag1 (no test peeking). The threshold is computed on positive train values when enough positives exist
 
 ---
 
@@ -152,7 +163,7 @@ In addition to overall test performance, the project reports performance for:
 
 Generate the HTML dashboard (reads saved outputs from `results/`):
 
-`./.venv/bin/python dashboard/build_dashboard.py`
+`python3 dashboard/build_dashboard.py`
 
 Open all dashboards:
 
@@ -160,7 +171,7 @@ Open all dashboards:
 
 (Option) Build a dashboard for a specific run tag:
 
-`./.venv/bin/python dashboard/build_dashboard.py --tag run_forecast_strict_main`
+`python3 dashboard/build_dashboard.py --tag run_forecast_strict_main`
 
 
 ---
@@ -169,7 +180,7 @@ Open all dashboards:
 
 Generate PNG figures for the report (saved to `figures/`):
 
-`./.venv/bin/python scripts/make_report_figures.py --tag run_forecast_strict_main`
+`python3 scripts/make_report_figures.py --tag run_forecast_strict_main`
 
 Then check:
 
@@ -180,7 +191,7 @@ Then check:
 
 ## Run Tests
 
-`./.venv/bin/python -m unittest discover -s tests -p "test_*.py" -v`
+`python3 -m pytest -q`
 
 
 ---
