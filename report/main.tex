@@ -1,4 +1,4 @@
-
+% I provide a LaTeX report whose figure filenames and reproducibility commands match the run_forecast_strict_tunerf_main artifacts in my figures folder.
 \documentclass[11pt]{article}
 
 % =========================
@@ -14,10 +14,9 @@
 \usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{setspace}
-\setstretch{1.06} 
+\setstretch{1.06}
 
-
-% Control float spacing 
+% Control float spacing
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
 \setlength{\intextsep}{8pt plus 2pt minus 2pt}
@@ -31,19 +30,19 @@
 % Figures, tables, and floats
 % =========================
 \usepackage{graphicx}
+\graphicspath{{figuresml/}} % Overleaf folder containing the PNGs/CSVs for the report
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{siunitx}
 \sisetup{detect-all=true}
-\usepackage{float}      
-\usepackage{placeins}   
-\usepackage{needspace}  
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{needspace}
 \usepackage{array}
 \usepackage{makecell}
 \newcolumntype{L}{>{\raggedright\arraybackslash}X}
-
 
 % =========================
 % Lists and links
@@ -71,7 +70,7 @@
   \end{center}
   \begin{center}
     \begin{minipage}{0.88\linewidth}
-      \small 
+      \small
       \noindent
 }{%
     \end{minipage}
@@ -79,19 +78,17 @@
   \vspace{1em}
 }
 
-
-
+% Figure stack helper: (filename, caption, label, commentary)
 \newcommand{\figstack}[4]{%
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.86\linewidth,height=0.28\textheight,keepaspectratio]{figuresml/#1}
+\includegraphics[width=0.86\linewidth,height=0.28\textheight,keepaspectratio]{#1}
 \caption{#2}
 \label{fig:#3}
 {\footnotesize\noindent\emph{Commentary.} #4\par}
 \end{figure}
 \vspace{0.2em}
 }
-
 
 % A boxed pipeline diagram without extra packages (TikZ-free, robust on Overleaf)
 \newcommand{\pipelinebox}[1]{%
@@ -122,28 +119,28 @@
 % Abstract (~200 words)
 % ==========================================================
 \begin{centeredabstract}
-This project builds a reproducible machine learning pipeline to forecast Japan’s annual GDP growth using country-year aggregates of natural disasters. The task is predictive rather than causal: the objective is to evaluate whether disaster information observed up to year $t-1$ improves one-year-ahead forecasts of GDP growth in year $t$. GDP and GDP growth are taken from the World Bank World Development Indicators (WDI), while disaster outcomes (counts, deaths, and damages) are aggregated from EM-DAT. To prevent leakage, all non-GDP covariates are lagged by one year under a strict ex-ante rule. The pipeline compares transparent time-series baselines (mean and rolling averages) against standard supervised learning models (Ridge, Random Forest, Gradient Boosting, and MLP) using a chronological holdout window and time-series cross-validation. Results show that on a long-sample “main” specification, Gradient Boosting improves RMSE relative to strong persistence baselines, indicating incremental predictive content beyond simple rules. In restricted specifications that rely primarily on disaster aggregates, predictive performance deteriorates and $R^2$ can be near zero, consistent with disasters being noisy at annual aggregation. Adding an oil-related control improves restricted nowcast performance substantially, suggesting that oil shocks provide incremental signal. The report highlights limitations from small samples, structural breaks (e.g., COVID), and feature availability that shortens evaluation windows in some specifications.
+This project builds a reproducible machine learning pipeline to forecast Japan’s annual GDP growth using country-year aggregates of natural disasters. The objective is predictive rather than causal: to predict GDP growth in year $t$, the strict forecast setup uses only information observable by the end of year $t-1$. GDP and GDP growth are sourced from the World Bank World Development Indicators (WDI), while disaster outcomes are aggregated from EM-DAT (counts, deaths, damages, magnitude). To reduce leakage risk, all preprocessing is executed inside scikit-learn pipelines and time order is preserved in both the holdout split and TimeSeriesSplit cross-validation.
+
+Across models (Ridge, Random Forest, Histogram Gradient Boosting, and an MLP benchmark) and strong time-series baselines, the best strict-forecast performance in the long-sample “main” specification is achieved by Gradient Boosting with test RMSE \(\approx 1.50\) (vs. a rolling-mean baseline \(\approx 2.02\)). However, restricted-window variants (start year 1992) can have near-zero or negative \(R^2\), consistent with small samples and noisy annual aggregates. In nowcast diagnostics (upper bound that may use same-year disaster information), adding an oil-related control substantially improves restricted performance (e.g., Ridge test RMSE \(\approx 1.59\), \(R^2 \approx 0.40\)). The report highlights why these patterns occur, with figures showing heavy-tailed damages, cross-validation instability for unregularized linear regression, and large errors driven by rare structural breaks such as COVID.
 \end{centeredabstract}
-
-
 
 % ==========================================================
 % Introduction (1–1.5 pages)
 % ==========================================================
 \section{Introduction}
-Natural disasters can disrupt production, infrastructure, and supply chains, and Japan provides salient examples such as the Great East Japan Earthquake. A large literature studies macroeconomic consequences of disasters and emphasizes heterogeneity across settings and event types \citep{noy2009,cavallo_noy2011,felbermayr2014}. From a forecasting perspective, an open question is whether disaster databases contain stable predictive patterns at the annual, country-level aggregation used in standard macro data.
+Natural disasters can affect macroeconomic outcomes through capital destruction, production interruptions, supply-chain propagation, and reconstruction dynamics. The empirical macro literature emphasizes that impacts are heterogeneous across countries, event types, and institutional environments, and that aggregate effects are difficult to estimate precisely \citep{noy2009,cavallo_noy2011,felbermayr2014}. Japan provides salient examples where large shocks plausibly transmit through networks and supply chains \citep{carvalho2021}. At the same time, climate-related extremes are an increasingly important source of macro risk in the long run \citep{ipcc2021}, which motivates testing whether disaster databases contain usable predictive signals for macro forecasting.
 
-This project frames the problem as a machine learning forecasting task. The target is Japan’s annual GDP growth in year $t$, and the horizon is one year ahead. The key design constraint is that forecasts must be based only on information observable up to year $t-1$. This strict ex-ante framing is important because disaster impacts are often realized within-year and GDP outcomes may themselves affect measurement or reporting. A model that uses contemporaneous covariates would therefore risk overstating predictive performance.
+This project frames the problem as a forecasting benchmark. The target is Japan’s annual GDP growth in year $t$, with a one-year-ahead horizon. A strict timing rule is enforced: predictors for year $t$ must be observable at $t-1$. This matters because many disaster outcomes (especially damages) are finalized during or after year $t$, and using contemporaneous measures can overstate real-time predictability.
 
-The project’s contribution is practical and methodological: it delivers a reproducible pipeline, compares multiple models against strong baselines under time-series validation, and documents failure cases explicitly. Rather than claiming that “ML works,” the analysis explains when and why models add value, where they fail, and what those failures imply about the underlying signal in annual disaster aggregates.
+The contribution is practical and methodological. The repository implements a reproducible pipeline, compares multiple models to strong baselines under time-series validation, and reports diagnostics that explain success and failure cases. The goal is not to claim “ML wins,” but to show when models beat persistence baselines, when they collapse to mean-like predictions, and how small annual samples and structural breaks limit what is achievable.
 
 % ==========================================================
 % Background (1–1.5 pages)
 % ==========================================================
 \section{Background}
-Empirical work on disasters and growth finds that average effects can be difficult to pin down and that impacts depend on exposure, preparedness, and economic structure \citep{cavallo_noy2011,felbermayr2014}. Some studies document persistent losses after major catastrophes, while others emphasize adaptation and reconstruction dynamics. For Japan specifically, disasters may operate through complex channels such as supply chain disruptions and sectoral linkages \citep{carvalho2021}. These mechanisms suggest that disaster information could matter for forecasting, but also that simple annual aggregates may be too coarse to capture the relevant propagation.
+A large empirical literature studies disasters and growth. Survey evidence highlights that average effects vary widely and depend on exposure, preparedness, and economic structure \citep{cavallo_noy2011,felbermayr2014}. Some work finds persistent output losses after catastrophic events, especially when damages are large relative to economic size. For Japan, supply-chain propagation can amplify localized shocks \citep{carvalho2021}. These mechanisms suggest that disaster information \emph{could} matter for forecasting, but they also imply that coarse annual aggregates might miss timing and sectoral transmission.
 
-Forecasting with annual macro time series is also challenging because samples are small and structural breaks are common. Models with high flexibility can overfit, making transparent baselines and careful validation essential. This motivates a design that (i) prioritizes leakage-free feature construction, (ii) evaluates against rolling-mean baselines, and (iii) reports both holdout performance and time-series cross-validation stability.
+Forecasting with annual macro data is intrinsically difficult: sample sizes are small and rare crises dominate losses. Standard guidance in time-series forecasting stresses leakage-free evaluation, strong baselines, and careful split design \citep{hyndman2021,bergmeir2018}. This motivates the project’s architecture: (i) a strict ex-ante forecasting mode, (ii) transparent baselines (mean and rolling means), and (iii) both a chronological holdout and TimeSeriesSplit cross-validation for stability checks.
 
 % ==========================================================
 % Design & Architecture (2 pages)
@@ -151,57 +148,61 @@ Forecasting with annual macro time series is also challenging because samples ar
 \section{Design \& Architecture}
 
 \subsection{Repository structure (reproducibility-first)}
-The repository follows a standard reproducible layout that separates data processing, feature construction, modeling, and artifacts:
+The codebase separates raw inputs, feature construction, modeling, and artifacts:
 \begin{itemize}[leftmargin=*]
-  \item \texttt{src/data\_loading.py} loads input spreadsheets from \texttt{data/} and standardizes columns.
-  \item \texttt{src/features.py} constructs a yearly master table, creates lag/rolling features, and lags disaster aggregates.
-  \item \texttt{src/models.py} trains models, runs time-series validation, and writes outputs to \texttt{results/}.
-  \item \texttt{main.py} provides a single CLI entry point for graders.
-  \item \texttt{tests/} contains unit/integration tests that enforce data integrity and pipeline stability.
-  \item \texttt{dashboard/} contains optional scripts to generate HTML dashboards.
+  \item \texttt{src/data\_loading.py} loads and standardizes spreadsheet inputs from \texttt{data/}.
+  \item \texttt{src/features.py} builds the cleaned yearly master table by aggregating EM-DAT to year level and merging with WDI GDP/growth (plus optional macro/oil series).
+  \item \texttt{src/models.py} constructs lag/rolling features, applies strict-vs-nowcast timing rules, trains baselines and ML models, runs time-series validation, and writes outputs to \texttt{results/}.
+  \item \texttt{main.py} is the CLI entry point that runs benchmarks and produces the saved \texttt{results/} artifacts used by plots and dashboards.
+  \item \texttt{tests/} contains unit/integration tests that enforce correctness and reproducibility (e.g., no shuffled years).
+  \item Optional scripts generate artifacts: \texttt{scripts/make\_report\_figures.py} exports report-ready PNGs/CSVs, and \texttt{dashboard/build\_dashboard.py} builds an HTML dashboard.
 \end{itemize}
 
-\subsection{Pipeline dataflow and run modes (forecast vs nowcast)}
+\subsection{Pipeline dataflow and run modes (forecast vs nowcast; strict vs ex\_post)}
+\noindent\textbf{Forecast vs nowcast.}
+Forecast mode enforces the strictest timing rule: to predict $gdp\_growth_t$, predictors must be known by $t-1$ (disaster and control variables are used as lagged features). Nowcast mode is a diagnostic upper bound: it may use same-year disaster aggregates to approximate what could be achieved with contemporaneous information.
+
 \noindent\textbf{Strict vs ex\_post.}
-In addition to forecast/nowcast, some diagnostic runs are labeled \textit{ex\_post} when they allow contemporaneous proxy information (e.g., shock indicators) that is not available under a strict ex-ante forecasting exercise. Therefore, \textit{ex\_post} results are reported as an \emph{upper bound} and are not directly comparable to strict forecasting performance.
-The system is designed around a single master table indexed by year, with multiple run configurations that differ only in feature availability rules. The forecast mode enforces the strictest timing constraint: to predict $gdp\_growth_t$, the model uses only lagged information up to $t-1$. The nowcast mode is included as a diagnostic benchmark: it allows within-year disaster aggregates and therefore represents an upper bound on what could be achieved if contemporaneous information were available.
+In code, \texttt{--covid-mode strict} excludes an ex-post indicator. \texttt{--covid-mode ex\_post} allows a simple COVID dummy (year $\geq$ 2020) as a robustness control that is not a genuine “forecastable” variable in real time. Ex\_post results are therefore interpreted as a robustness/diagnostic variant, not the headline strict forecasting claim.
 
 \pipelinebox{
 \textbf{Inputs} (\code{data/}) \\
 \quad $\rightarrow$ WDI GDP \& GDP growth (Japan, annual) \\
 \quad $\rightarrow$ EM-DAT events (Japan, event-level) \\
-\quad $\rightarrow$ optional macro/oil controls (annual) \\[0.3em]
-\textbf{Build master table} (\code{src/features.py}) \\
+\quad $\rightarrow$ optional macro controls + oil series (annual) \\[0.3em]
+\textbf{Master table} (\code{src/features.py}) \\
 \quad $\rightarrow$ aggregate EM-DAT to country-year: counts, deaths, total damage, average magnitude \\
 \quad $\rightarrow$ merge with WDI by year; align calendar years \\
-\quad $\rightarrow$ create transformed variables: log(1+damage), damage share of GDP \\
-\quad $\rightarrow$ fill disaster missingness with zeros (no recorded disaster) \\[0.3em]
-\textbf{Feature construction} (\code{src/models.py}) \\
-\quad $\rightarrow$ GDP dynamics: lags and rolling moments based on past values only \\
-\quad $\rightarrow$ strict ex-ante: shift all disaster/macro/oil features by 1 year (forecast) \\
-\quad $\rightarrow$ feature subsets: main vs restricted vs macro vs oil \\[0.3em]
+\quad $\rightarrow$ fill disaster aggregates with zero when no event is recorded that year \\[0.3em]
+\textbf{Feature engineering} (\code{src/models.py}) \\
+\quad $\rightarrow$ GDP dynamics: lags + rolling mean/std (computed from past values only) \\
+\quad $\rightarrow$ transformations: log(1+damage), damage share of GDP, time trend (\(year, year^2\)) \\
+\quad $\rightarrow$ strict forecast: use lagged versions of disaster/macro/oil features (t-1) \\
+\quad $\rightarrow$ nowcast: optionally include same-year disaster features \\[0.3em]
 \textbf{Modeling \& validation} (\code{src/models.py}) \\
-\quad $\rightarrow$ chronological holdout test window \\
-\quad $\rightarrow$ time-series cross-validation (robustness) \\
-\quad $\rightarrow$ compare baselines + ML models \\
-\quad $\rightarrow$ save metrics + predictions to \code{results/} \\[0.3em]
+\quad $\rightarrow$ chronological holdout test window (last fraction of years) \\
+\quad $\rightarrow$ time-series CV via TimeSeriesSplit (stability check) \\
+\quad $\rightarrow$ compare baselines + ML models; save metrics (and CV scores) to \code{results/} \\[0.3em]
 \textbf{Artifacts} \\
-\quad $\rightarrow$ \code{results/model\_metrics\_<run>.csv} \\
-\quad $\rightarrow$ \code{results/predictions\_<run>\_<model>.csv} \\
+\quad $\rightarrow$ \code{results/model\_metrics\_<tag>.csv} \\
+\quad $\rightarrow$ \code{results/cv\_scores\_<tag>.csv} \\
+\quad $\rightarrow$ \code{figures/predictions\_<tag>\_<model>.csv} \\
 \quad $\rightarrow$ optional HTML dashboards in \code{dashboard/}
 }
 
-\subsection{Key design choices (explained in complete sentences)}
-All features are constructed under a strict ex-ante rule: predictors for year $t$ must be observable by the end of year $t-1$. This rule is implemented by shifting disaster aggregates and controls by one year. The intent is to ensure that any measured performance corresponds to a feasible forecasting exercise rather than to a contemporaneous explanation of GDP outcomes.
+\subsection{Key design choices}
+First, the strict ex-ante rule is treated as a contract: to forecast year $t$, the pipeline only uses predictors available by $t-1$. This is implemented directly in \code{src/models.py} by constructing lagged versions of disaster and control variables and by computing rolling GDP statistics from shifted series.
 
-The project uses multiple feature sets to separate genuine predictive content from mechanical improvements due to adding broad macro controls. The main specification includes lagged GDP dynamics and disaster aggregates, while restricted specifications remove GDP lags to test whether disasters alone carry signal. Additional variants include macro controls and an oil-related feature. This modular approach clarifies trade-offs because richer covariate sets can improve performance but also shorten the usable sample and reduce comparability across specifications.
+Second, baselines are treated as serious competitors rather than placeholders. With small annual samples, simple persistence rules can be hard to beat. The project therefore includes mean and rolling-mean baselines so that any ML “gain” is interpreted relative to realistic alternatives rather than relative to a weak benchmark.
 
-The model set is chosen to balance flexibility and stability. Regularized linear models (Ridge) provide a strong baseline under multicollinearity and small samples \citep{ridge}. Tree ensembles (Random Forest and Gradient Boosting) capture nonlinearities while remaining relatively robust \citep{rf,gbm}. MLP is included as a high-capacity benchmark that can reveal overfitting. When flexible models fail, these failure cases are reported explicitly and used to motivate the final model choice.
+Third, multiple feature sets are used to separate signals. The “main” specification uses a long sample and includes GDP persistence plus lagged disaster aggregates. “Restricted” variants start in 1992 to test stability in more recent decades and to align with shorter-availability controls. Optional macro and oil variants test whether broad macro shocks add predictive value beyond disasters.
+
+Fourth, model complexity is balanced against overfitting risk. Ridge regression provides a regularized linear benchmark \citep{ridge}. Random Forest and Histogram Gradient Boosting allow nonlinearities \citep{rf,gbm}. An MLP is included as a high-capacity stress test; when it fits training extremely well but generalizes poorly, that is used as evidence of variance/overfitting rather than as a success.
 
 \subsection{Leakage prevention and validation protocol}
-Leakage prevention is treated as an architectural requirement, not a late-stage fix. The pipeline enforces three concrete safeguards. First, rolling features of GDP growth are computed using shifted values so that the rolling window ends at $t-1$ rather than at $t$. Second, all non-GDP covariates are shifted by one year in strict forecast configurations. Third, preprocessing steps that depend on the distribution of features (imputation and scaling) are executed inside a scikit-learn \code{Pipeline} so they are fit on training folds only and then applied to validation/test folds.
+Leakage prevention is enforced mechanically. Rolling features are computed from shifted GDP growth so that the rolling window ends at $t-1$. Strict-mode covariates are shifted by one year. Preprocessing (imputation and scaling where relevant) is done inside scikit-learn pipelines so that each fold fits transformations on the training subset only.
 
-Validation follows time-series logic. A chronological holdout window measures final out-of-sample performance. Time-series cross-validation complements this by repeating the train/validation split across multiple historical folds. Early folds have short training windows, which increases variance and is one reason why conservative hyperparameters are preferred over aggressive tuning.
+Validation follows time-series best practice. A chronological holdout measures final out-of-sample performance. TimeSeriesSplit cross-validation provides a stability check across multiple historical folds \citep{bergmeir2018}. Early folds are intentionally difficult because training windows are small; this explains why some models show unstable fold RMSE even when the final holdout comparison is stable.
 
 \subsection{Feature-set summary (what changes across runs)}
 \begin{table}[H]
@@ -209,24 +210,30 @@ Validation follows time-series logic. A chronological holdout window measures fi
 \small
 \begin{tabularx}{\linewidth}{l X}
 \toprule
-Run configuration & Included feature groups (all timing rules enforced by the run) \\
+Run configuration & Included feature groups (timing enforced by the run) \\
 \midrule
-\textbf{Main} & Lagged GDP dynamics (lags + rolling mean/std) + lagged disaster aggregates (counts, deaths, damages, magnitude) \\
-\textbf{Restricted} & Disaster aggregates only (no GDP lags), to test whether disasters alone predict growth \\
-\textbf{Restricted\_macro} & Restricted + lagged macro controls (when available), to check incremental signal from macro series \\
-\textbf{Restricted\_oil} & Restricted + lagged oil-related feature, to capture external macro shocks relevant for Japan \\
+\textbf{Main} & Time trend + lagged GDP persistence (lags, rolling mean/std) + lagged disaster aggregates (counts, deaths, damages, magnitude, share) \\
+\textbf{Restricted} & Same construction rules as Main, but evaluated on years $\geq$ 1992 to test stability on a later subsample \\
+\textbf{Restricted\_macro} & Restricted window + lagged macro controls (when available) \\
+\textbf{Restricted\_oil} & Restricted window + oil-related features (and optionally their changes) \\
 \bottomrule
 \end{tabularx}
-\caption{Conceptual summary of feature sets used to isolate predictive signal.}
+\caption{Conceptual summary of run configurations used by \code{main.py}.}
 \label{tab:featuresets}
 \end{table}
 
 \subsection{Artifacts and outputs}
-Each run produces machine-readable outputs that support both grading and interpretation:
+The project produces machine-readable artifacts that are used consistently by the report, dashboards, and tests.
+
+\paragraph{Run outputs (written by \texttt{main.py} / \texttt{models.py} into \texttt{results/}).}
 \begin{itemize}[leftmargin=*]
-  \item \texttt{results/model\_metrics\_<run>.csv} contains train/test RMSE, MAE, \(R^2\), and subgroup metrics.
-  \item \texttt{results/predictions\_<run>\_<model>.csv} contains year-by-year predictions for plots and diagnostics.
-  \item Optional HTML dashboards are saved in \texttt{dashboard/}.
+  \item \texttt{results/model\_metrics\_<tag>.csv}: train/test RMSE, MAE, \(R^2\), and diagnostic counts (+ run metadata).
+  \item \texttt{results/cv\_scores\_<tag>.csv}: fold-level RMSE for time-series CV stability plots.
+\end{itemize}
+
+\paragraph{Reporting artifacts (generated by \texttt{scripts/make\_report\_figures.py} into \texttt{figures/}).}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{figures/predictions\_<tag>\_<model>.csv}: year-by-year predictions used in plots (exported by the reporting script, not by \texttt{main.py} directly).
 \end{itemize}
 
 % ==========================================================
@@ -235,37 +242,27 @@ Each run produces machine-readable outputs that support both grading and interpr
 \section{Implementation}
 
 \subsection{Data sources and preprocessing}
-GDP and GDP growth are taken from the World Bank’s World Development Indicators (WDI) \citep{wdi}. Disaster aggregates are constructed from EM-DAT \citep{emdat} at the country-year level. Inputs are stored as spreadsheets in \texttt{data/}, and the pipeline transforms them into a single yearly master table. The preprocessing steps align GDP years, compute or import growth, aggregate disaster outcomes (counts, deaths, damages), construct GDP lag and rolling features, and then shift all disaster/control features by one year to satisfy the strict ex-ante rule.
+GDP and GDP growth come from WDI \citep{wdi}. Disaster information comes from EM-DAT \citep{emdat}. The project aggregates EM-DAT at the Japan-year level (counts, deaths, total damages, average magnitude), merges those aggregates with WDI by calendar year, and then constructs forecasting features in \code{src/models.py}.
 
-Two implementation details matter for correctness. First, disaster missingness is not treated as “unknown” but as “no recorded disaster,” and the pipeline fills disaster aggregate columns with zeros after the merge. Second, transformations are chosen to reduce skewness and prevent extreme values from dominating: the pipeline uses log(1+damage) and damage share of GDP rather than raw damages, because EM-DAT damages can be heavy-tailed and sometimes missing.
+Two implementation details matter for correctness. First, disaster years with no recorded events are treated as zeros in the merged master table. Second, damage values are heavy-tailed, so the model uses \(\log(1+\text{damage})\) and damage share of GDP to stabilize scale and reduce the influence of extreme outliers.
 
 \subsection{Feature engineering (how each feature is computed)}
-GDP dynamics are represented with lagged values and rolling statistics. Concretely, the dataset includes $gdp\_growth_{t-1}$ and $gdp\_growth_{t-2}$, and rolling mean/std features computed from past values only. The rolling features are implemented using shifted series so that the rolling window ends at $t-1$, which prevents information from year $t$ entering predictors for year $t$.
+GDP persistence is represented by $gdp\_growth_{t-1}$ and $gdp\_growth_{t-2}$ plus rolling mean/std features computed from shifted series (so the window ends at $t-1$). Disaster aggregates are transformed (log damage, damage share) and then lagged under strict forecasting. In nowcast mode, the pipeline may additionally use same-year disaster aggregates as a diagnostic upper bound.
 
-Disaster aggregates are computed at the country-year level and then lagged under strict forecasting. The lagging step is explicit: the columns for event count, deaths, damages, and magnitude are shifted by one year, and the contemporaneous columns are only used in nowcast runs. This makes the timing rule auditable in code and keeps the meaning of each configuration clear.
+The pipeline also includes a smooth time trend (\(year\), \(year^2\)) because long-run macro drift can otherwise be misattributed to other predictors. Time is always known at forecasting time, so including it does not violate the ex-ante rule.
 
 \subsection{Missing values, scaling, and leakage-proof preprocessing}
-Feature availability differs across specifications because some macro series are not available for the full historical window. Rather than dropping large parts of the data manually, the pipeline keeps the merged table and uses a consistent strategy: the target and essential GDP lag features define the usable rows, while remaining missing values in predictors are handled within the model pipeline.
-
-For models that require numeric stability (Ridge and MLP), preprocessing is implemented as \code{SimpleImputer} followed by \code{StandardScaler} inside a scikit-learn \code{Pipeline}. This is important because it ensures imputation and scaling are fit on training data only in each fold. Tree models do not require scaling, but they still receive imputed features for consistency.
+Feature availability differs by configuration because some macro/oil series start later. Rather than manually trimming datasets, the pipeline defines a consistent dataset contract: rows must have the target and essential GDP lag feature; remaining missing predictors are handled inside the sklearn pipeline via an imputer. Models that are sensitive to scaling (Ridge, MLP) use \code{StandardScaler} after imputation; tree models are evaluated with the same imputed inputs for comparability.
 
 \subsection{Model training and validation}
-The training code compares baselines and ML models using a chronological holdout test window. Time-series cross-validation is implemented as a robustness check to verify that conclusions do not depend on a single split. The implementation saves both summary metrics and year-by-year predictions to support reproducible plots and diagnostic analysis.
-
-Baselines are treated as first-class models because annual macro series are often hard to beat with complex estimators. The mean baseline and rolling baselines serve as realistic reference points: any ML model that cannot outperform them is interpreted as lacking incremental predictive value for the given feature set.
+All models are evaluated with a chronological holdout split (last fraction of years as test). TimeSeriesSplit cross-validation is used to assess stability across folds. Baselines are implemented as first-class models (mean, last-year, rolling mean) to keep comparisons honest. The benchmark code saves summary metrics and CV scores to \texttt{results/}. Per-year predictions used in plots are exported by \texttt{scripts/make\_report\_figures.py} to \texttt{figures/}, making figures and diagnostics reproducible.
 
 \subsection{Hyperparameter policy}
-Hyperparameters are kept conservative because annual time series provide a limited number of observations. Aggressive tuning can overfit the validation procedure itself, especially when early cross-validation folds contain very short training windows. The report therefore emphasizes transparent comparisons across a small set of standard models with reasonable defaults, and prioritizes out-of-sample performance and stability over marginal gains from extensive search.
+Hyperparameters are conservative by default because annual time series provide limited observations. Over-tuning can overfit the validation procedure itself, especially when early folds have short training windows. Optional tuning flags exist for selected models; for the headline strict-forecast run we enable Random Forest tuning using train-only time-series CV, while keeping other choices conservative.
+
 
 \subsection{Testing and contracts (what the tests enforce)}
-The test suite is designed to catch silent errors that would invalidate forecasting claims. Unit tests check that the master table has the required columns and that key transformations behave as intended. Integration tests run a small end-to-end pipeline to ensure that outputs are generated deterministically and that the core artifacts (metrics and prediction files) are produced. This matters because time-series forecasting projects can fail in subtle ways, such as accidentally shuffling years, using contemporaneous covariates, or changing feature definitions without updating downstream scripts.
-
-\subsection{Implementation issues encountered}
-Several practical issues affected the empirical results and are important for interpretation. Adding certain controls (macro variables or oil-related features) reduced the usable period because some series are not available for the full historical window. This mechanically shortens the holdout test window and makes performance across specifications less directly comparable.
-
-Model stability also differs across feature sets. Flexible estimators such as MLP can fit the training data almost perfectly on short samples but generalize poorly, which is consistent with high variance and overfitting. This reinforces the role of regularization and strong baselines in small-sample time-series forecasting.
-
-An additional unexpected pattern appears in some restricted runs where Gradient Boosting matches the mean baseline almost exactly. This suggests that under the restricted feature set, either the effective predictors contain too little variation, missingness reduces useful splits, or conservative settings lead to no meaningful tree improvements. Rather than hiding this behavior, the report treats it as a diagnostic result: model choice cannot compensate for a feature set that provides little predictive signal.
+The test suite is designed to catch silent mistakes that would invalidate the forecasting story (e.g., shuffled years, missing required columns, inconsistent output artifacts). Unit tests check that the master table contains required variables and that key transformations behave as intended. Integration tests run end-to-end and verify that outputs are produced deterministically.
 
 % ==========================================================
 % Evaluation (1–2 pages)
@@ -273,18 +270,17 @@ An additional unexpected pattern appears in some restricted runs where Gradient 
 \section{Evaluation}
 
 \subsection{Headline results with baselines}
-Table~\ref{tab:headline} reports two representative scenarios and compares the best non-baseline model against a strong baseline. Numbers are taken from the saved \texttt{model\_metrics} outputs.
-
+Table~\ref{tab:headline} reports two representative settings using the values produced by the saved \texttt{model\_metrics} outputs.
 
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{4pt}
-\begin{tabularx}{\linewidth}{L L S S S L S}
+\begin{tabularx}{\linewidth}{L L S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] L S[table-format=1.3]}
 \toprule
 Setting & Best model & {RMSE} & {$R^2$} & {MAE} & Best baseline & {\makecell{Baseline\\RMSE}} \\
 \midrule
-Forecast (strict, main) & Gradient Boosting & 1.503 & 0.128 & 1.086 & Roll-3 mean & 2.016 \\
+Forecast (strict, main) & Gradient Boosting & 1.500 & 0.131 & 1.039 & Roll-3 mean & 2.016 \\
 Nowcast (ex\_post, restricted\_oil) & Ridge & 1.592 & 0.401 & 1.416 & Mean (train) & 2.102 \\
 \bottomrule
 \end{tabularx}
@@ -292,111 +288,116 @@ Nowcast (ex\_post, restricted\_oil) & Ridge & 1.592 & 0.401 & 1.416 & Mean (trai
 \label{tab:headline}
 \end{table}
 
-
-On the main long-sample specification, Gradient Boosting improves RMSE by roughly 25\% relative to a rolling-mean baseline, indicating incremental predictive content beyond persistence. On the restricted\_oil specification, Ridge achieves a substantially higher \(R^2\) on a shorter evaluation window, consistent with oil-related information capturing relevant macro shocks.
+On the long-sample main specification, Gradient Boosting improves test RMSE by about 25\% relative to the rolling-mean baseline, suggesting incremental predictive content beyond persistence. In restricted nowcast diagnostics, adding oil features yields a large improvement and a substantially higher \(R^2\) on the shorter evaluation window.
 
 \subsection{Restricted nowcast results (with and without oil)}
-Table~\ref{tab:restricted_nowcast} highlights how adding the oil feature changes generalization performance in the restricted setting. The results show that disasters-only restricted features provide limited predictive power, while the oil augmentation yields a sizable improvement and better fit in severe-disaster years as well.
+Table~\ref{tab:restricted_nowcast} focuses on the restricted nowcast setting and quantifies the improvement from adding oil features. “Severe disaster” years are defined as years whose damage-share proxy exceeds the 85th percentile of the training distribution; because the restricted test window is short, the number of severe test years is small, so the severe-\(R^2\) is not reported.
 
 \begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\linewidth}{l l S S S S}
+\begin{tabularx}{\linewidth}{l l S[table-format=1.3] S[table-format=1.3] S[table-format=1.3] c}
 \toprule
-Setting & Model & {RMSE test} & {$R^2$ test} & {RMSE severe} & {$R^2$ severe} \\
+Setting & Model & {RMSE test} & {$R^2$ test} & {RMSE severe} & {$n$ severe} \\
 \midrule
-Nowcast (ex\_post, restricted) & Ridge & 2.012 & 0.043 & 1.892 & 0.250 \\
-Nowcast (ex\_post, restricted\_oil) & Ridge & 1.592 & 0.401 & 1.734 & 0.371 \\
+Nowcast (ex\_post, restricted) & Ridge & 2.012 & 0.043 & 2.390 & 3 \\
+Nowcast (ex\_post, restricted\_oil) & Ridge & 1.592 & 0.401 & 2.043 & 3 \\
 \bottomrule
 \end{tabularx}
 \caption{Restricted nowcast performance for Ridge with and without oil features.}
 \label{tab:restricted_nowcast}
 \end{table}
 
-
 \Needspace{0.45\textheight}
-
 \subsection{Prediction diagnostics and model behavior (strict forecast main)}
-The strict forecast prediction file indicates that a small number of extreme years dominate the test error. In particular, the COVID recession year (2020) is under-predicted in magnitude, which is consistent with the difficulty of forecasting rare structural breaks using only lagged aggregates.
+In the strict forecast main run, a small number of extreme years dominate the test error. The COVID recession year (2020) is the largest error: the model under-predicts the magnitude of the downturn, which is expected when training on a small annual dataset with few crisis observations.
 
-% Keep all figures consecutive 
 \FloatBarrier
 
-\figstack{pred_vs_actual_run_forecast_strict_main.png}
+% ======== CHANGED: strict_main -> strict_tunerf_main (filenames) ========
+
+\figstack{pred_vs_actual_run_forecast_strict_tunerf_main.png}
 {Strict forecast (main): Predicted vs actual GDP growth for Gradient Boosting.}
 {pred_vs_actual_main}
-{The model tracks moderate fluctuations but underestimates the magnitude of rare breaks, which is typical when training on a small annual sample with few crisis observations.}
+{The model tracks moderate fluctuations but underestimates rare structural breaks (notably 2020), which drive a large share of test loss.}
 
-\figstack{model_comparison_run_forecast_strict_main.png}
+\figstack{model_comparison_run_forecast_strict_tunerf_main.png}
 {Model comparison (strict forecast, main): test RMSE across baselines and ML models.}
 {model_comparison_main}
-{Gradient Boosting outperforms strong persistence baselines, indicating that the feature set provides additional predictive content beyond simple time-series rules.}
+{Gradient Boosting is best on the holdout test window. Random Forest is competitive. Unregularized linear regression and the MLP generalize poorly in this small-sample setting.}
 
-\figstack{cv_stability_run_forecast_strict_main.png}
+\figstack{cv_stability_run_forecast_strict_tunerf_main.png}
 {Time-series cross-validation stability (strict forecast, main).}
 {cv_stability_main}
-{Early folds have short training windows, which makes validation error volatile; the plot helps assess whether the selected model remains competitive across folds rather than only in one split.}
+{Fold RMSE can be volatile because early folds have short training windows. Linear regression shows extreme instability in some folds, while regularized and tree-based models are more stable.}
 
-\figstack{feature_importance_run_forecast_strict_main.png}
-{Feature importance for the selected model (strict forecast, main).}
+\figstack{feature_importance_run_forecast_strict_tunerf_main.png}
+{Permutation feature importance for the selected model (strict forecast, main).}
 {feature_importance_main}
-{Lagged GDP dynamics dominate importance, while disaster aggregates contribute \emph{minimal} marginal signal at annual frequency, which is consistent with disasters being noisy when aggregated to country-year level.}
+{GDP persistence and volatility proxies (lags and rolling std) dominate predictive content. Disaster aggregates contribute limited incremental signal at annual frequency once GDP dynamics are included.}
 
-
-\figstack{error_by_year_run_forecast_strict_main.png}
-{Errors by year (strict forecast, main): large-error years highlight structural breaks and rare shocks.}
+\figstack{error_by_year_run_forecast_strict_tunerf_main.png}
+{Absolute error by year (strict forecast, main).}
 {error_by_year_main}
-{The largest errors concentrate in a few extreme years, supporting the interpretation that structural breaks drive most out-of-sample loss.}
+{A few years account for most loss. The largest bar corresponds to the COVID recession year, consistent with “rare breaks dominate RMSE” in annual macro forecasting.}
 
-\figstack{errors_vs_disaster_run_forecast_strict_main.png}
-{Errors vs disaster intensity (strict forecast, main).}
+\figstack{errors_vs_disaster_run_forecast_strict_tunerf_main.png}
+{Errors vs disaster intensity proxy (strict forecast, main).}
 {errors_vs_disaster_main}
-{A weak relationship between error magnitude and disaster intensity is consistent with the finding that annual disaster aggregates provide limited incremental predictive content once GDP persistence is accounted for.}
+{There is no strong monotonic relationship between error size and the lagged disaster proxy, which is consistent with limited incremental predictive content from annual disaster aggregates.}
 
 \subsection{Exploratory data analysis (context for the forecasting difficulty)}
-EDA figures provide context for why the task is hard. GDP growth has a small number of extreme years, and disaster damage variables are heavy-tailed. These properties make models sensitive to a few observations, amplify overfitting risk, and motivate conservative model selection and strong baselines.
+EDA provides context for why the task is hard. GDP growth has rare extreme years, and disaster damages are heavy-tailed, which increases sensitivity to a small number of observations and elevates overfitting risk.
 
 \figstack{eda_gdp_growth.png}
-{EDA: Japan annual GDP growth (distribution and time pattern).}
+{EDA: Japan annual GDP growth over time.}
 {eda_gdp_growth}
-{The series is dominated by a few extreme downturns; forecasting accuracy is therefore driven disproportionately by rare events.}
+{The series features a few extreme downturns that dominate forecast error, so stability and baselines matter.}
 
 \figstack{eda_disasters.png}
-{EDA: Disaster counts and outcomes over time (annual aggregates).}
+{EDA: Disaster aggregates over time (annual Japan totals).}
 {eda_disasters}
-{Disaster aggregates show intermittent spikes, but annual aggregation can blur timing and mechanisms, limiting predictive usefulness.}
+{Annual disaster measures are intermittent and can reflect both true event frequency and reporting/measurement changes, limiting stable signal.}
 
 \figstack{eda_damage_dist.png}
-{EDA: Distribution of reported damages (heavy tails).}
+{EDA: Distribution of reported damages (raw scale).}
 {eda_damage_dist}
-{Heavy-tailed damages justify log transforms; otherwise a few events can dominate the learning signal and the loss.}
+{Damages are strongly right-skewed; log transforms help prevent a few extreme observations from dominating training and evaluation.}
 
 % ==========================================================
 % Discussion (1 page)
 % ==========================================================
 \section{Discussion}
 
-\subsection{Interpretation}
-The results suggest that disasters-only country-year aggregates provide limited predictive signal for Japan’s annual GDP growth at a one-year horizon. This is consistent with the broader literature, which emphasizes heterogeneous impacts and the difficulty of identifying stable aggregate patterns from disaster databases \citep{cavallo_noy2011,felbermayr2014}. The restricted specification often produces near-zero or negative \(R^2\), meaning that predictions are not reliably better than a mean baseline.
+\subsection{Interpreting what the models are really learning}
+The strict-forecast main results show that the best model mainly leverages GDP persistence and volatility structure (lags and rolling statistics). This is not a weakness: in annual macro data, persistence is often the dominant predictable component. The feature-importance plot supports this directly, with rolling volatility and lagged GDP features contributing far more than disaster aggregates.
 
-The oil-augmented restricted model performs substantially better, suggesting that oil-related variation captures macro shocks that matter for Japan’s growth and are not fully redundant with lagged GDP features. This aligns with the general idea that aggregate GDP fluctuations are frequently driven by broad macro forces rather than localized events.
+This pattern is consistent with the disasters-and-growth literature, which argues that aggregate disaster impacts are heterogeneous and can be hard to summarize in a stable country-year mapping \citep{cavallo_noy2011,felbermayr2014}. Annual aggregates may blur timing (within-year), omit sectoral exposure, and miss policy response, all of which matter for macro outcomes. As a result, disasters can be economically meaningful yet still provide limited \emph{incremental} forecasting power in this particular setup.
 
-\subsection{Unexpected findings and interpretation}
-Two unexpected patterns are particularly informative. In restricted specifications, Gradient Boosting sometimes behaves like a constant predictor that matches the mean baseline. This can occur when the remaining features provide limited variance, contain missing values that reduce effective training information, or fail to create splits that improve out-of-sample loss. The practical implication is that a powerful model does not automatically generate predictive power when the feature set is not informative at the annual level.
+\subsection{What the diagnostics reveal (and why they matter)}
+Several diagnostics explain the observed performance differences:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Linear regression instability in CV.} The CV stability figure shows extreme fold RMSE spikes for unregularized linear regression. With correlated predictors (lags, rolling means, trends) and small samples, OLS can be numerically unstable. Ridge improves stability by shrinking coefficients.
+  \item \textbf{MLP overfitting.} The MLP achieves near-zero training RMSE but poor test RMSE, which is classic high-variance behavior in small annual datasets. In this context it is a useful stress test: it confirms that model capacity alone does not create signal.
+  \item \textbf{Rare breaks dominate loss.} The year-by-year error plot shows that the largest losses come from rare structural breaks (especially 2020). A model trained on decades of ``normal'' years cannot reliably anticipate unprecedented shocks using only lagged aggregates.
+\end{itemize}
 
-A second pattern is the clear overfitting of the MLP model in some runs. Extremely low training error combined with substantially worse test error indicates that the model is learning noise rather than stable structure. This supports the report’s emphasis on regularization, baselines, and cross-validation stability when selecting the final model.
+\subsection{Why the oil feature helps in restricted nowcasts}
+In the restricted nowcast diagnostics, adding oil features materially improves fit. This is coherent with the economic context: Japan is sensitive to global energy price shocks, and oil variables can proxy broad macro conditions that are not captured by disaster aggregates alone. The improvement does not imply disasters are unimportant; it implies that, for annual GDP growth forecasting, broad macro shocks can be more consistently informative than coarse disaster totals.
 
-\subsection{Limitations}
-The primary limitation is sample size: annual data provide relatively few observations, and some specifications further shorten the usable window due to feature availability. Structural breaks (such as the COVID recession) are rare but dominate error, and no annual feature set can fully encode these breaks without contemporaneous information. Disaster aggregates are also coarse proxies for economic exposure; they omit sectoral composition, geographic concentration, and policy response, all of which matter for macro outcomes.
+\subsection{Limitations (stated as constraints, not excuses)}
+The primary limitation is sample size, which is especially severe in restricted variants and when additional controls reduce availability. Small samples amplify the influence of a handful of years and make cross-validation folds unstable. Another limitation is measurement: EM-DAT damage reporting is heavy-tailed and incomplete, so even with log transforms, noise remains. Finally, the project uses country-year aggregates, which omit sectoral and geographic heterogeneity; richer exposure measures and higher-frequency data would likely be needed to capture disaster transmission more reliably.
 
 % ==========================================================
 % Conclusion (0.5 page)
 % ==========================================================
 \section{Conclusion}
-This project delivers a reproducible ML pipeline to forecast Japan’s annual GDP growth using lagged disaster aggregates and optional controls. The results show that in a long-sample setting with GDP persistence features, Gradient Boosting improves meaningfully over rolling baselines, indicating incremental predictive content. In contrast, disaster-only aggregates offer limited forecasting power at annual frequency, and flexible models can overfit under small-sample constraints. The strongest restricted performance occurs when adding an oil-related feature, suggesting that broad macro shocks are more predictive for Japan’s annual growth than disaster aggregates alone. Future work would benefit from higher-frequency data, richer exposure measures, and explicit modeling of structural breaks.
+This project delivers a reproducible ML pipeline to forecast Japan’s annual GDP growth using lagged disaster aggregates and optional controls, with leakage-free time-series validation. In the long-sample strict-forecast main configuration, Gradient Boosting improves meaningfully over rolling baselines, indicating incremental predictive content beyond simple persistence rules. However, disaster aggregates add limited incremental signal once GDP dynamics are included, and flexible models can overfit under small-sample constraints.
+
+Restricted nowcast diagnostics show that adding oil-related information improves performance substantially, suggesting that broad macro shocks can be more predictive for annual growth than coarse disaster totals. Future work would benefit from higher-frequency outcomes, richer exposure measures (sectoral or regional), and explicit handling of structural breaks.
 
 % ==========================================================
-% References (not counted in the 10 pages of main text)
+% References (manual bib; not counted in the 10 pages of main text)
 % ==========================================================
 \clearpage
 \begin{thebibliography}{99}
@@ -407,20 +408,26 @@ World Bank. \textit{World Development Indicators (WDI)}.
 \bibitem{emdat}
 CRED / UCLouvain. \textit{EM-DAT: The International Disaster Database}. Dataset used for disaster aggregates.
 
+\bibitem{ipcc2021}
+IPCC. \textit{Climate Change 2021: The Physical Science Basis (AR6 WG1)}. Cambridge University Press, 2021.
+
 \bibitem{noy2009}
 Ilan Noy. ``The macroeconomic consequences of disasters.'' \textit{Journal of Development Economics}, 88(2), 221--231, 2009.
 
 \bibitem{cavallo_noy2011}
-Eduardo Cavallo and Ilan Noy. ``Natural Disasters and the Economy --- A Survey.'' \textit{International Review of Environmental and Resource Economics}, 2011.
+Eduardo Cavallo and Ilan Noy. ``Natural Disasters and the Economy---A Survey.'' \textit{International Review of Environmental and Resource Economics}, 5(1), 63--102, 2011.
 
 \bibitem{felbermayr2014}
 Gabriel Felbermayr and Jasmin Gr\"oschl. ``Naturally negative: The growth effects of natural disasters.'' \textit{Journal of Development Economics}, 111, 92--106, 2014.
 
-\bibitem{hsiangjina2014}
-Solomon M. Hsiang and Amir S. Jina. ``The Causal Effect of Environmental Catastrophe on Long-Run Economic Growth: Evidence From 6,700 Cyclones.'' \textit{NBER Working Paper} 20352, 2014.
-
 \bibitem{carvalho2021}
 Vasco M. Carvalho, Makoto Nirei, Yukiko U. Saito, and Alireza Tahbaz-Salehi. ``Supply Chain Disruptions: Evidence from the Great East Japan Earthquake.'' \textit{Quarterly Journal of Economics}, 136(2), 1255--1321, 2021.
+
+\bibitem{hyndman2021}
+Rob J. Hyndman and George Athanasopoulos. \textit{Forecasting: Principles and Practice} (3rd ed.), 2021.
+
+\bibitem{bergmeir2018}
+Christoph Bergmeir, Rob J. Hyndman, and Bonsoo Koo. ``A note on the validity of cross-validation for evaluating autoregressive time series prediction.'' \textit{Computational Statistics \& Data Analysis}, 2018.
 
 \bibitem{rf}
 Leo Breiman. ``Random Forests.'' \textit{Machine Learning}, 45, 5--32, 2001.
@@ -431,9 +438,6 @@ Jerome H. Friedman. ``Greedy function approximation: A gradient boosting machine
 \bibitem{ridge}
 Arthur E. Hoerl and Robert W. Kennard. ``Ridge Regression: Biased Estimation for Nonorthogonal Problems.'' \textit{Technometrics}, 12(1), 55--67, 1970.
 
-\bibitem{sklearn}
-F. Pedregosa et al. ``Scikit-learn: Machine Learning in Python.'' \textit{Journal of Machine Learning Research}, 12, 2825--2830, 2011.
-
 \end{thebibliography}
 
 % ==========================================================
@@ -441,29 +445,44 @@ F. Pedregosa et al. ``Scikit-learn: Machine Learning in Python.'' \textit{Journa
 % ==========================================================
 \clearpage
 \section*{Appendix (supplementary material)}
-The remainder of this document provides supplementary material (implementation details, additional figures, and reproducibility notes).
+The remainder of this document provides supplementary material (reproducibility notes and AI tool disclosure).
 \appendix
+
 \section{Reproducibility (optional)}
 \textbf{Minimum run (safe for graders).}
 \begin{verbatim}
-python main.py --only-main
+python3 main.py --only-main --tune-rf
 \end{verbatim}
 
 \textbf{Run all configurations.}
 \begin{verbatim}
-python main.py
+python3 main.py
+\end{verbatim}
+
+\textbf{Build report figures (copy PNGs into Overleaf folder figuresml/).}
+\begin{verbatim}
+python3 scripts/make_report_figures.py --tag run_forecast_strict_tunerf_main
 \end{verbatim}
 
 \textbf{Build dashboard (optional).}
 \begin{verbatim}
-python dashboard/build_dashboard.py
+python3 dashboard/build_dashboard.py --tag run_forecast_strict_tunerf_main
 \end{verbatim}
 
 \textbf{Key outputs.}
 \begin{itemize}[leftmargin=*]
   \item \texttt{results/model\_metrics\_*.csv}: summary metrics per run.
+  \item \texttt{results/cv\_scores\_*.csv}: CV fold RMSE per run.
   \item \texttt{figures/predictions\_*.csv}: year-by-year predictions.
   \item \texttt{dashboard/*.html}: interactive dashboards.
 \end{itemize}
+
+\section{AI tool usage disclosure (optional)}
+I used AI tools as assistance \textbf{as needed} during development:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{ChatGPT}: debugging help, pipeline improvements (time-series validation, artifacts), occasional small code snippets, and English writing edits (clarity, structure).
+  \item \textbf{GitHub Copilot}: auto-completion and small syntax adjustments.
+\end{itemize}
+I take full responsibility for the final code, results, and interpretation.
 
 \end{document}

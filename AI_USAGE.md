@@ -25,7 +25,7 @@ AI was used **as needed**, mainly:
 - `src/models.py`
 - `src/features.py`
 - `src/data_loading.py`
-- `dashboard/build_dashboard.py` (or `scripts/dashboard.py` if present)
+- `dashboard/build_dashboard.py`
 - `tests/test_features.py`, `tests/test_pipeline.py`, `tests/test_models.py`
 - `project_report.pdf` and/or `report/main.tex` (English writing and wording)
 

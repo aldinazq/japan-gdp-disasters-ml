@@ -80,7 +80,7 @@ Input files are stored in `data/` (Excel):
 
 
 
-## Quickstart (grader-safe)
+## Quickstart 
 
 If you want the shortest, safest run (recommended for graders):
 
