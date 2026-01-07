@@ -129,7 +129,7 @@ Create and activate a virtual environment, then install dependencies:
 - Only run the main block (skip additional robustness runs):  
   `python3 main.py --only-main`
   
-- Hyperparameter tuning (optional):  
+- Hyperparameter tuning :  
   `python3 main.py --tune-rf`  
   `python3 main.py --tune-gb`
 
