@@ -47,8 +47,8 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
 └── tests/
     ├── test_features.py
     ├── test_pipeline.py
-    └── test_models.py```
-
+    └── test_models.py
+```
 
 
 ## Key modules

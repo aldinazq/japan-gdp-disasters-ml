@@ -1,4 +1,4 @@
-% I provide a LaTeX report whose figure filenames and reproducibility commands match the run_forecast_strict_tunerf_main artifacts in my figures folder.
+% I provide a LaTeX report whose figure filenames and reproducibility commands match the run_forecast_strict_tunerf_main artifacts in my figuresml folder.
 \documentclass[11pt]{article}
 
 % =========================
@@ -260,7 +260,6 @@ All models are evaluated with a chronological holdout split (last fraction of ye
 \subsection{Hyperparameter policy}
 Hyperparameters are conservative by default because annual time series provide limited observations. Over-tuning can overfit the validation procedure itself, especially when early folds have short training windows. Optional tuning flags exist for selected models; for the headline strict-forecast run we enable Random Forest tuning using train-only time-series CV, while keeping other choices conservative.
 
-
 \subsection{Testing and contracts (what the tests enforce)}
 The test suite is designed to catch silent mistakes that would invalidate the forecasting story (e.g., shuffled years, missing required columns, inconsistent output artifacts). Unit tests check that the master table contains required variables and that key transformations behave as intended. Integration tests run end-to-end and verify that outputs are produced deterministically.
 
@@ -314,8 +313,6 @@ In the strict forecast main run, a small number of extreme years dominate the te
 
 \FloatBarrier
 
-% ======== CHANGED: strict_main -> strict_tunerf_main (filenames) ========
-
 \figstack{pred_vs_actual_run_forecast_strict_tunerf_main.png}
 {Strict forecast (main): Predicted vs actual GDP growth for Gradient Boosting.}
 {pred_vs_actual_main}
@@ -329,7 +326,7 @@ In the strict forecast main run, a small number of extreme years dominate the te
 \figstack{cv_stability_run_forecast_strict_tunerf_main.png}
 {Time-series cross-validation stability (strict forecast, main).}
 {cv_stability_main}
-{Fold RMSE can be volatile because early folds have short training windows. Linear regression shows extreme instability in some folds, while regularized and tree-based models are more stable.}
+{Fold RMSE can be volatile because early folds have short training windows. Linear regression shows extreme instability in some folds (note the log-scaled y-axis), while regularized and tree-based models are more stable.}
 
 \figstack{feature_importance_run_forecast_strict_tunerf_main.png}
 {Permutation feature importance for the selected model (strict forecast, main).}
@@ -359,10 +356,10 @@ EDA provides context for why the task is hard. GDP growth has rare extreme years
 {eda_disasters}
 {Annual disaster measures are intermittent and can reflect both true event frequency and reporting/measurement changes, limiting stable signal.}
 
-\figstack{eda_damage_dist.png}
-{EDA: Distribution of reported damages (raw scale).}
-{eda_damage_dist}
-{Damages are strongly right-skewed; log transforms help prevent a few extreme observations from dominating training and evaluation.}
+\figstack{eda_damage_dist_log.png}
+{EDA: Distribution of reported damages (log1p scale).}
+{eda_damage_dist_log}
+{Reported damages are heavy-tailed; the log transform makes the mass of “small-to-medium” events visible and avoids the plot being dominated by a few extreme years.}
 
 % ==========================================================
 % Discussion (1 page)
@@ -445,8 +442,14 @@ Arthur E. Hoerl and Robert W. Kennard. ``Ridge Regression: Biased Estimation for
 % ==========================================================
 \clearpage
 \section*{Appendix (supplementary material)}
-The remainder of this document provides supplementary material (reproducibility notes and AI tool disclosure).
+The remainder of this document provides supplementary material (reproducibility notes, AI tool disclosure, and extra figures).
 \appendix
+
+\section{Extra EDA figure (raw damage scale)}
+\figstack{eda_damage_dist.png}
+{EDA: Distribution of reported damages (raw scale).}
+{eda_damage_dist_raw}
+{On the raw USD scale, a small number of extreme observations dominate the histogram. This is why log transforms are used for modeling and for readable EDA plots.}
 
 \section{Reproducibility (optional)}
 \textbf{Minimum run (safe for graders).}

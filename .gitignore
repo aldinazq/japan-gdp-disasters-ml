@@ -5,6 +5,3 @@ __pycache__/
 .vscode/
 .pytest_cache/
 
-results/
-figures/
-dashboard/*.html

@@ -1,4 +1,4 @@
-"""I build a self-contained HTML dashboard that summarizes model metrics, out-of-sample predictions, and post-disaster diagnostics."""
+"""I build a self-contained HTML dashboard that summarizes model metrics, predictions, CV stability, and disaster diagnostics."""
 from __future__ import annotations
 
 import argparse
@@ -37,6 +37,7 @@ DASHBOARD_DIR.mkdir(exist_ok=True)
 # This paragraph is for coherence: I reuse the exact same dataset code as main.py,
 # so the dashboard is consistent with the benchmark metrics.
 from src.models import make_dataset, time_train_test_split  # noqa: E402
+
 
 # ----------------------------
 # Config model (what one dashboard run represents)
@@ -124,6 +125,18 @@ def _read_metrics(tag: str) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"Missing {path}. Run main.py to create it.")
     return pd.read_csv(path)
+
+
+def _read_cv_scores(tag: str) -> Optional[pd.DataFrame]:
+    # This paragraph is for optional diagnostics.
+    # If cv_scores_{tag}.csv does not exist, I skip CV plots gracefully.
+    path = RESULTS_DIR / f"cv_scores_{tag}.csv"
+    if not path.exists():
+        return None
+    try:
+        return pd.read_csv(path)
+    except Exception:
+        return None
 
 
 def _infer_config_from_tag(tag: str, *, default_test_ratio: float = 0.2) -> RunConfig:
@@ -338,6 +351,17 @@ def _plot_actual_vs_pred(pred_df: pd.DataFrame, model_name: str) -> str:
     return _fig_to_base64(fig)
 
 
+def _plot_abs_error_by_year(pred_df: pd.DataFrame) -> str:
+    # This paragraph is for highlighting which specific years drive the overall RMSE.
+    df = pred_df.copy().sort_values("year")
+    fig = plt.figure()
+    plt.bar(df["year"].astype(int), np.abs(df["error"].to_numpy()))
+    plt.xlabel("Year (test set)")
+    plt.ylabel("|Actual - Pred|")
+    plt.title("Absolute error by year")
+    return _fig_to_base64(fig)
+
+
 def _plot_errors_vs_disaster_proxy(pred_df: pd.DataFrame, X_test: pd.DataFrame) -> str:
     # This paragraph is for a sanity check: if disasters matter, errors might correlate with a disaster proxy.
     if "damage_share_gdp_lag1" in X_test.columns:
@@ -358,6 +382,107 @@ def _plot_errors_vs_disaster_proxy(pred_df: pd.DataFrame, X_test: pd.DataFrame) 
     plt.xlabel(xlab)
     plt.ylabel("Error (actual - pred)")
     plt.title("Errors vs disaster proxy")
+    return _fig_to_base64(fig)
+
+
+def _plot_cv_stability(cv_df: Optional[pd.DataFrame]) -> str:
+    # This paragraph is for showing whether models are stable across TimeSeriesSplit folds.
+    if cv_df is None or cv_df.empty or "fold" not in cv_df.columns or "val_RMSE" not in cv_df.columns:
+        fig = plt.figure()
+        plt.text(0.02, 0.5, "No cv_scores_{tag}.csv found.", fontsize=12)
+        plt.axis("off")
+        return _fig_to_base64(fig)
+
+    pv = (
+        cv_df.pivot_table(index="fold", columns="model", values="val_RMSE", aggfunc="mean")
+        .sort_index()
+    )
+
+    fig = plt.figure()
+    for col in pv.columns:
+        plt.plot(pv.index.to_numpy(), pv[col].to_numpy(), marker="o", label=str(col))
+
+    ymin = np.nanmin(pv.to_numpy())
+    if np.isfinite(ymin) and ymin > 0:
+        plt.yscale("log")
+        plt.ylabel("Validation RMSE (log scale)")
+    else:
+        plt.yscale("symlog", linthresh=1e-3)
+        plt.ylabel("Validation RMSE (symlog)")
+
+    plt.xlabel("Fold")
+    plt.title("TimeSeriesSplit CV stability")
+    plt.legend()
+    plt.grid(True, which="both", axis="y", alpha=0.3)
+    return _fig_to_base64(fig)
+
+
+def _plot_damage_dists(df_model: pd.DataFrame) -> Tuple[str, str]:
+    # This paragraph is for EDA: disaster damages are heavy-tailed, so raw + log views are both useful.
+    if "total_damage" not in df_model.columns:
+        fig = plt.figure()
+        plt.text(0.02, 0.5, "No total_damage column found.", fontsize=12)
+        plt.axis("off")
+        b64 = _fig_to_base64(fig)
+        return b64, b64
+
+    dmg = pd.to_numeric(df_model["total_damage"], errors="coerce").fillna(0.0).clip(lower=0.0)
+
+    fig1 = plt.figure()
+    plt.hist(dmg.to_numpy(), bins=30)
+    plt.xlabel("total_damage (USD)")
+    plt.title("Damage distribution (raw scale)")
+    raw_b64 = _fig_to_base64(fig1)
+
+    fig2 = plt.figure()
+    plt.hist(np.log1p(dmg).to_numpy(), bins=30)
+    plt.xlabel("log(1 + total_damage)")
+    plt.title("Damage distribution (log1p scale)")
+    log_b64 = _fig_to_base64(fig2)
+
+    return raw_b64, log_b64
+
+
+def _plot_disaster_aggregates(df_model: pd.DataFrame) -> str:
+    # This paragraph is for EDA: I show event counts and log damages over time.
+    need = {"year", "n_events", "total_damage"}
+    if not need.issubset(set(df_model.columns)):
+        fig = plt.figure()
+        plt.text(0.02, 0.5, "Missing columns for disaster aggregates plot.", fontsize=12)
+        plt.axis("off")
+        return _fig_to_base64(fig)
+
+    df = df_model.sort_values("year").copy()
+    dmg = pd.to_numeric(df["total_damage"], errors="coerce").fillna(0.0).clip(lower=0.0)
+
+    fig = plt.figure()
+    plt.plot(df["year"], df["n_events"], label="n_events")
+    plt.plot(df["year"], np.log1p(dmg), label="log(1+total_damage)")
+    plt.xlabel("Year")
+    plt.title("Disaster aggregates over time (Japan)")
+    plt.legend()
+    return _fig_to_base64(fig)
+
+
+def _plot_gdp_growth(df_model: pd.DataFrame, y: np.ndarray) -> str:
+    # This paragraph is for EDA: I show the target dynamics over time.
+    if "year" not in df_model.columns:
+        fig = plt.figure()
+        plt.text(0.02, 0.5, "No year column found.", fontsize=12)
+        plt.axis("off")
+        return _fig_to_base64(fig)
+
+    fig = plt.figure()
+    if "gdp_growth" in df_model.columns:
+        plt.plot(df_model.sort_values("year")["year"], df_model.sort_values("year")["gdp_growth"])
+        plt.ylabel("GDP growth (%)")
+    else:
+        df = df_model.sort_values("year").copy()
+        plt.plot(df["year"], np.asarray(y))
+        plt.ylabel("Target")
+    plt.axhline(0.0, linewidth=1)
+    plt.xlabel("Year")
+    plt.title("Japan GDP growth over time")
     return _fig_to_base64(fig)
 
 
@@ -497,12 +622,29 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
 
     pred_df = pd.DataFrame({"year": years_test, "actual": y_test, "pred": yhat_test, "error": (y_test - yhat_test)})
     pred_plot_b64 = _plot_actual_vs_pred(pred_df, chosen_name)
-
+    abs_err_plot_b64 = _plot_abs_error_by_year(pred_df)
     err_plot_b64 = _plot_errors_vs_disaster_proxy(pred_df, X_test)
 
+    # EDA-style blocks to match the report figures
+    gdp_plot_b64 = _plot_gdp_growth(df_model, y)
+    dis_agg_b64 = _plot_disaster_aggregates(df_model)
+    dmg_raw_b64, dmg_log_b64 = _plot_damage_dists(df_model)
+
+    # CV stability (optional)
+    cv_df = _read_cv_scores(tag)
+    cv_plot_b64 = _plot_cv_stability(cv_df)
+
     # This paragraph is for post-disaster diagnostics (coherent with src/models.py).
-    dmg_share_te = pd.to_numeric(X_test.get("damage_share_gdp_lag1", np.zeros(len(X_test))), errors="coerce").fillna(0).to_numpy()
-    dmg_share_tr = pd.to_numeric(X_train.get("damage_share_gdp_lag1", np.zeros(len(X_train))), errors="coerce").fillna(0).to_numpy()
+    dmg_share_te = (
+        pd.to_numeric(X_test.get("damage_share_gdp_lag1", np.zeros(len(X_test))), errors="coerce")
+        .fillna(0)
+        .to_numpy()
+    )
+    dmg_share_tr = (
+        pd.to_numeric(X_train.get("damage_share_gdp_lag1", np.zeros(len(X_train))), errors="coerce")
+        .fillna(0)
+        .to_numpy()
+    )
     n_events_te = pd.to_numeric(X_test.get("n_events_lag1", np.zeros(len(X_test))), errors="coerce").fillna(0).to_numpy()
 
     # Post-disaster years: n_events_lag1 > 0
@@ -572,10 +714,46 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
     </div>
 
     <div class="card">
+      <h2>TimeSeriesSplit CV stability</h2>
+      <img src="data:image/png;base64,{cv_plot_b64}" />
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Japan GDP growth over time (EDA)</h2>
+      <img src="data:image/png;base64,{gdp_plot_b64}" />
+    </div>
+
+    <div class="card">
+      <h2>Disaster aggregates over time (EDA)</h2>
+      <img src="data:image/png;base64,{dis_agg_b64}" />
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2>Damage distribution (raw scale)</h2>
+      <img src="data:image/png;base64,{dmg_raw_b64}" />
+    </div>
+
+    <div class="card">
+      <h2>Damage distribution (log1p scale)</h2>
+      <img src="data:image/png;base64,{dmg_log_b64}" />
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
       <h2>Predictions on test years</h2>
       <img src="data:image/png;base64,{pred_plot_b64}" />
       <p><b>Train RMSE:</b> {_format_float(summary["train_RMSE"])} | <b>Test RMSE:</b> {_format_float(summary["test_RMSE"])}</p>
       <p><b>Train R²:</b> {_format_float(summary["train_R2"])} | <b>Test R²:</b> {_format_float(summary["test_R2"])}</p>
+    </div>
+
+    <div class="card">
+      <h2>Absolute error by year</h2>
+      <img src="data:image/png;base64,{abs_err_plot_b64}" />
     </div>
   </div>
 

@@ -4,7 +4,7 @@
 Machine Learning / Time-Series Forecasting (Predictive Analytics)
 
 ## Problem Statement & Motivation
-Japan is frequently hit by natural disasters (earthquakes, typhoons, floods) and has high-quality macroeconomic data. The objective of this project is **predictive (not causal)**: I build a reproducible machine-learning pipeline to **forecast annual GDP growth one year ahead** using **lagged disaster information** and optional macro/oil controls. The pipeline compares multiple models against strong baselines, uses time-series validation (no shuffling), and produces reproducible outputs plus an optional dashboard for interpretation. :contentReference[oaicite:0]{index=0}
+Japan is frequently hit by natural disasters (earthquakes, typhoons, floods) and has high-quality macroeconomic data. The objective of this project is **predictive (not causal)**: I build a reproducible machine-learning pipeline to **forecast annual GDP growth one year ahead** using **lagged disaster information** and optional macro/oil controls. The pipeline compares multiple models against strong baselines, uses time-series validation (no shuffling), and produces reproducible outputs plus an optional dashboard for interpretation.
 
 ## Prediction Task
 **Target:** \( y_t \) = Japan’s GDP growth in year \( t \) (annual %).  
