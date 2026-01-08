@@ -1,6 +1,6 @@
 # Japan GDP Growth Forecasting with Natural Disasters (Machine Learning Project)
 
-This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged disaster aggregates** (EM-DAT) and macro controls. The project emphasizes **time-series validation** best practices (no random shuffling). **Final report:** `project_report.pdf` (LaTeX sources in `report/`).
+This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged disaster aggregates** (EM-DAT) and **optional macro/oil controls**. The project emphasizes **time-series validation** best practices (no random shuffling). **Final report:** `project_report.pdf` (LaTeX sources in `report/`).
 
 
 ---
@@ -11,9 +11,12 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
 - **Horizon:** one-year-ahead forecasting
 - **Strict ex-ante setup:** to predict `gdp_growth_t`, the model uses only information observable at **t−1**:
   - lagged GDP dynamics: `gdp_growth_lag1`, `gdp_growth_lag2`, rolling mean/std based on past values
-  - lagged disaster aggregates: number of events, deaths, damage, magnitude (all at t−1)
-  - optional lagged macro controls (WDI): inflation, unemployment, exports/GDP, investment/GDP, FX (all at t−1)
-  - optional lagged oil controls: oil price and oil price change (all at t−1)
+  - lagged disaster aggregates (t−1): `n_events_lag1`, `total_deaths_lag1`, `log_total_damage_lag1`, `damage_share_gdp_lag1`, `avg_magnitude_lag1`
+  - optional lagged macro controls (t−1): `inflation_cpi_lag1`, `unemployment_rate_lag1`, `exports_pct_gdp_lag1`, `investment_pct_gdp_lag1`, `fx_jpy_per_usd_lag1`
+  - optional lagged oil controls (t−1): `oil_price_usd_lag1`, `oil_price_usd_change_lag1`
+
+- **Nowcast (diagnostic upper bound):** adds same-year disaster variables (`n_events`, `total_deaths`, `log_total_damage`, `damage_share_gdp`, `avg_magnitude`, `has_disaster`).
+  - If `include_oil=True`, it also adds same-year `oil_price_usd` and `oil_price_usd_change` (macro controls remain lagged).
 
 ---
 
@@ -57,7 +60,7 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
 - `src/models.py`: constructs feature sets, trains models, runs time-series CV, and writes run outputs to `results/`
 - `main.py`: CLI entry point to run benchmarks (non-interactive)
 - `dashboard/build_dashboard.py`: optional HTML dashboard generator (diagnostics)
-- - `scripts/make_report_figures.py`: generates report figures and exports per-year predictions used in plots to `figures/` (then copied into `report/figuresml/` for LaTeX/Overleaf)
+- scripts/make_report_figures.py: generates report figures and exports per-year predictions used in plots to figures/(then copied intoreport/figuresml/ for LaTeX/Overleaf)
 - `tests/`: unit tests for data integrity and pipeline reproducibility
 
 
