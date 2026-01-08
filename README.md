@@ -2,6 +2,7 @@
 
 This repository builds a **reproducible machine learning pipeline** to **forecast Japan’s annual GDP growth** using **lagged disaster aggregates** (EM-DAT) and macro controls. The project emphasizes **time-series validation** best practices (no random shuffling). **Final report:** `project_report.pdf` (LaTeX sources in `report/`).
 
+
 ---
 
 ## Prediction Task
@@ -13,8 +14,6 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
   - lagged disaster aggregates: number of events, deaths, damage, magnitude (all at t−1)
   - optional lagged macro controls (WDI): inflation, unemployment, exports/GDP, investment/GDP, FX (all at t−1)
   - optional lagged oil controls: oil price and oil price change (all at t−1)
-
----
 
 ---
 
@@ -49,6 +48,7 @@ This repository builds a **reproducible machine learning pipeline** to **forecas
     └── test_models.py
 ```
 
+---
 
 ## Key modules
 
@@ -92,6 +92,7 @@ python3 -m pytest -q
 python3 main.py --only-main --tune-rf 
 ```
 
+---
 
 ## Setup
 
