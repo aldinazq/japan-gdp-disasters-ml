@@ -8,9 +8,9 @@
 AI was used **as needed**, mainly:
 - when I encountered a **bug** (imports, environment setup, execution, tests),
 - when I was unsure how to **structure/improve** the pipeline (script organization, CLI options, reproducible outputs),
-- when I wanted to **improve results** (baselines, temporal validation, “post-disaster years” diagnostics),
+- when I wanted to strengthen the evaluation methodology and diagnostics (baselines, temporal validation, “post-disaster years” diagnostics),
 - to propose **dashboard** ideas to better present and analyze results,
-- and **sometimes** to generate **small code snippets** (e.g., utility functions, parts of scripts, targeted fixes),
+- and sometimes to generate small code fragments/snippets (e.g., utility functions, parts of scripts, targeted fixes), which I then reviewed, adapted, and tested,
 - and to **revise English writing** in the report (wording, grammar, conciseness, and readability).
 
 ## What I did myself
