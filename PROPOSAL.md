@@ -1,4 +1,4 @@
-# Project Proposal: Forecasting Japan’s GDP Growth with Disaster and Macro Signals
+# Project Proposal: Forecasting Japan’s GDP Growth with Disaster Signals and Optional Macro Controls
 
 ## Project Category
 Machine Learning / Time-Series Forecasting (Predictive Analytics)
@@ -12,7 +12,7 @@ Japan is frequently hit by natural disasters (earthquakes, typhoons, floods) and
 
 **Strict ex-ante features (headline setting):** to predict \( y_t \), I use only information observable at \( t-1 \):
 - GDP dynamics: \( y_{t-1}, y_{t-2} \) and rolling statistics computed only from past values.
-- Disaster aggregates (lagged): number of events, deaths, total damage, and average magnitude at \( t-1 \).
+- Disaster aggregates (lagged): number of events, deaths, \(\log(1+\text{damage})\), damage share of GDP, and average magnitude at \( t-1 \).
 - Optional macro controls (lagged, WDI): inflation, unemployment, exports/GDP, investment/GDP, FX (JPY/USD).
 - Optional oil controls (lagged): oil price level and oil price change.
 
@@ -22,7 +22,7 @@ Japan is frequently hit by natural disasters (earthquakes, typhoons, floods) and
 
 ## Data Sources & Feature Engineering
 - **World Bank (WDI):** GDP level and GDP growth + macro indicators.
-- **EM-DAT (CRED):** event-level disasters aggregated to yearly features (`n_events`, `total_deaths`, `total_damage`, `avg_magnitude`). Damage values in “’000 US$” are converted to USD for unit consistency.
+- **EM-DAT (CRED):** event-level disasters aggregated to yearly features (`n_events`, `total_deaths`, `total_damage`, `avg_magnitude`).When damages are provided in thousands (e.g., “'000 US$”), they are converted to USD (×1000) for unit consistency before constructing \(\log(1+\text{damage})\) and damage/GDP proxies.
 - **Oil price series:** annual oil price used as a global shock/control.
 Feature engineering focuses on stability (e.g., lagging, rolling statistics, and scaling/transforming damage proxies) while respecting the strict timing constraint.
 
