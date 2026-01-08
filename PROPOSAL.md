@@ -28,7 +28,7 @@ Feature engineering focuses on stability (e.g., lagging, rolling statistics, and
 
 ## Models & Evaluation
 **Baselines:** training mean, last-year growth \( y_{t-1} \), and rolling-mean baseline (when available).  
-**Models:** Linear Regression, Ridge, Random Forest, **Histogram Gradient Boosting** (sklearn `HistGradientBoostingRegressor`), Neural Network (MLPRegressor), and **optional XGBoost** if installed (not required for reproducibility).  
+**Models:** Linear Regression (baseline), Ridge regression, Random Forest, Histogram Gradient Boosting (scikit-learn HistGradientBoostingRegressor), and an MLP benchmark (scikit-learn MLPRegressor).
 **Validation:** chronological train/test split + TimeSeriesSplit CV on the training set.  
 **Metrics:** RMSE, MAE, and \( R^2 \).
 
