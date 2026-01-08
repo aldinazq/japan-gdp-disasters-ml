@@ -1,4 +1,4 @@
-% I provide a LaTeX report whose figure filenames and reproducibility commands match the run_forecast_strict_tunerf_main artifacts in my figuresml folder.
+% I provide a fully coherent Overleaf LaTeX report that matches my repository tags, result CSVs, and figure filenames, with smaller figures to fit the page limit.
 \documentclass[11pt]{article}
 
 % =========================
@@ -30,7 +30,7 @@
 % Figures, tables, and floats
 % =========================
 \usepackage{graphicx}
-\graphicspath{{figuresml/}} % Overleaf folder containing the PNGs/CSVs for the report
+\graphicspath{{figuresml/}} % Overleaf folder containing the PNGs/CSVs copied from repo figures/
 \usepackage{caption}
 \captionsetup{font=small,labelfont=bf}
 \usepackage{booktabs}
@@ -78,16 +78,20 @@
   \vspace{1em}
 }
 
+% =========================
+% FIGURES: smaller size to save pages
+% =========================
 % Figure stack helper: (filename, caption, label, commentary)
 \newcommand{\figstack}[4]{%
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.86\linewidth,height=0.28\textheight,keepaspectratio]{#1}
+% Smaller than before (was width=0.86, height=0.28)
+\includegraphics[width=0.78\linewidth,height=0.22\textheight,keepaspectratio]{#1}
 \caption{#2}
 \label{fig:#3}
 {\footnotesize\noindent\emph{Commentary.} #4\par}
 \end{figure}
-\vspace{0.2em}
+\vspace{0.0em}
 }
 
 % A boxed pipeline diagram without extra packages (TikZ-free, robust on Overleaf)
@@ -119,9 +123,9 @@
 % Abstract (~200 words)
 % ==========================================================
 \begin{centeredabstract}
-This project builds a reproducible machine learning pipeline to forecast Japan’s annual GDP growth using country-year aggregates of natural disasters. The objective is predictive rather than causal: to predict GDP growth in year $t$, the strict forecast setup uses only information observable by the end of year $t-1$. GDP and GDP growth are sourced from the World Bank World Development Indicators (WDI), while disaster outcomes are aggregated from EM-DAT (counts, deaths, damages, magnitude). To reduce leakage risk, all preprocessing is executed inside scikit-learn pipelines and time order is preserved in both the holdout split and TimeSeriesSplit cross-validation.
+This project builds a reproducible machine learning pipeline to forecast Japan’s annual GDP growth using country-year aggregates of natural disasters. The objective is predictive rather than causal: in the \textbf{strict forecast} setup, predicting GDP growth in year $t$ uses only information observable by the end of year $t-1$. GDP and GDP growth are sourced from the World Bank World Development Indicators (WDI), while disaster outcomes are aggregated from EM-DAT (event counts, deaths, damages, magnitude). To prevent leakage, all preprocessing is executed inside scikit-learn pipelines, rolling features are computed on shifted series, and time order is preserved in both the chronological holdout split and TimeSeriesSplit cross-validation.
 
-Across models (Ridge, Random Forest, Histogram Gradient Boosting, and an MLP benchmark) and strong time-series baselines, the best strict-forecast performance in the long-sample “main” specification is achieved by Gradient Boosting with test RMSE \(\approx 1.50\) (vs. a rolling-mean baseline \(\approx 2.02\)). However, restricted-window variants (start year 1992) can have near-zero or negative \(R^2\), consistent with small samples and noisy annual aggregates. In nowcast diagnostics (upper bound that may use same-year disaster information), adding an oil-related control substantially improves restricted performance (e.g., Ridge test RMSE \(\approx 1.59\), \(R^2 \approx 0.40\)). The report highlights why these patterns occur, with figures showing heavy-tailed damages, cross-validation instability for unregularized linear regression, and large errors driven by rare structural breaks such as COVID.
+Across models (Ridge, Random Forest, Histogram Gradient Boosting, and an MLP benchmark) and strong baselines, the best strict-forecast performance in the long-sample \textbf{main} specification is achieved by Gradient Boosting with test RMSE $\approx 1.50$ (vs.\ a rolling-mean baseline $\approx 2.02$). Restricted-window variants (start year 1992) can have near-zero or negative $R^2$, consistent with small samples and noisy annual aggregates. The project also reports \textbf{nowcast} diagnostics (an upper bound that may use same-year information and, in \texttt{ex\_post} mode, a COVID dummy). In restricted nowcasts, adding oil-related controls substantially improves performance (e.g., Ridge test RMSE $\approx 1.59$, $R^2 \approx 0.40$). Figures explain these patterns via heavy-tailed damages, cross-validation instability for unregularized OLS, and large errors driven by rare structural breaks such as 2020.
 \end{centeredabstract}
 
 % ==========================================================
@@ -160,7 +164,7 @@ The codebase separates raw inputs, feature construction, modeling, and artifacts
 
 \subsection{Pipeline dataflow and run modes (forecast vs nowcast; strict vs ex\_post)}
 \noindent\textbf{Forecast vs nowcast.}
-Forecast mode enforces the strictest timing rule: to predict $gdp\_growth_t$, predictors must be known by $t-1$ (disaster and control variables are used as lagged features). Nowcast mode is a diagnostic upper bound: it may use same-year disaster aggregates to approximate what could be achieved with contemporaneous information.
+Forecast mode enforces the strictest timing rule: to predict $gdp\_growth_t$, predictors must be known by $t-1$ (disaster and control variables are used as lagged features). Nowcast mode is a diagnostic upper bound: it may use same-year information (when present in the feature set) to approximate what could be achieved with contemporaneous data.
 
 \noindent\textbf{Strict vs ex\_post.}
 In code, \texttt{--covid-mode strict} excludes an ex-post indicator. \texttt{--covid-mode ex\_post} allows a simple COVID dummy (year $\geq$ 2020) as a robustness control that is not a genuine “forecastable” variable in real time. Ex\_post results are therefore interpreted as a robustness/diagnostic variant, not the headline strict forecasting claim.
@@ -178,15 +182,16 @@ In code, \texttt{--covid-mode strict} excludes an ex-post indicator. \texttt{--c
 \quad $\rightarrow$ GDP dynamics: lags + rolling mean/std (computed from past values only) \\
 \quad $\rightarrow$ transformations: log(1+damage), damage share of GDP, time trend (\(year, year^2\)) \\
 \quad $\rightarrow$ strict forecast: use lagged versions of disaster/macro/oil features (t-1) \\
-\quad $\rightarrow$ nowcast: optionally include same-year disaster features \\[0.3em]
+\quad $\rightarrow$ nowcast: optionally include same-year covariates if present \\[0.3em]
 \textbf{Modeling \& validation} (\code{src/models.py}) \\
 \quad $\rightarrow$ chronological holdout test window (last fraction of years) \\
 \quad $\rightarrow$ time-series CV via TimeSeriesSplit (stability check) \\
 \quad $\rightarrow$ compare baselines + ML models; save metrics (and CV scores) to \code{results/} \\[0.3em]
-\textbf{Artifacts} \\
+\textbf{Artifacts (repo)} \\
 \quad $\rightarrow$ \code{results/model\_metrics\_<tag>.csv} \\
 \quad $\rightarrow$ \code{results/cv\_scores\_<tag>.csv} \\
-\quad $\rightarrow$ \code{figures/predictions\_<tag>\_<model>.csv} \\
+\quad $\rightarrow$ \code{figures/predictions\_<tag>\_<best\_model>.csv} \\
+\quad $\rightarrow$ \code{figures/*.png} (then copied into Overleaf \code{figuresml/}) \\
 \quad $\rightarrow$ optional HTML dashboards in \code{dashboard/}
 }
 
@@ -203,6 +208,31 @@ Fourth, model complexity is balanced against overfitting risk. Ridge regression 
 Leakage prevention is enforced mechanically. Rolling features are computed from shifted GDP growth so that the rolling window ends at $t-1$. Strict-mode covariates are shifted by one year. Preprocessing (imputation and scaling where relevant) is done inside scikit-learn pipelines so that each fold fits transformations on the training subset only.
 
 Validation follows time-series best practice. A chronological holdout measures final out-of-sample performance. TimeSeriesSplit cross-validation provides a stability check across multiple historical folds \citep{bergmeir2018}. Early folds are intentionally difficult because training windows are small; this explains why some models show unstable fold RMSE even when the final holdout comparison is stable.
+
+\subsection{Dataset coverage and evaluation windows (exact years)}
+To make results fully auditable, Table~\ref{tab:windows} reports the exact years and sample sizes used by the configurations cited in the Evaluation section. The holdout split is deterministic with \code{test\_ratio = 0.2}.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{l l X}
+\toprule
+Run cited in report & Tag (CSV suffix) & Years used (N), Train window, Test window \\
+\midrule
+Strict forecast (main, tuned RF run) &
+\code{run\_forecast\_strict\_tunerf\_main} &
+1962--2023 (62); Train: 1962--2010 (49); Test: 2011--2023 (13) \\
+Nowcast (ex\_post, restricted) &
+\code{run\_nowcast\_ex\_post\_restricted} &
+1992--2023 (32); Train: 1992--2016 (25); Test: 2017--2023 (7) \\
+Nowcast (ex\_post, restricted\_oil) &
+\code{run\_nowcast\_ex\_post\_restricted\_oil} &
+1992--2023 (32); Train: 1992--2016 (25); Test: 2017--2023 (7) \\
+\bottomrule
+\end{tabularx}
+\caption{Exact evaluation windows for the configurations cited in the report.}
+\label{tab:windows}
+\end{table}
 
 \subsection{Feature-set summary (what changes across runs)}
 \begin{table}[H]
@@ -227,14 +257,16 @@ The project produces machine-readable artifacts that are used consistently by th
 
 \paragraph{Run outputs (written by \texttt{main.py} / \texttt{models.py} into \texttt{results/}).}
 \begin{itemize}[leftmargin=*]
-  \item \texttt{results/model\_metrics\_<tag>.csv}: train/test RMSE, MAE, \(R^2\), and diagnostic counts (+ run metadata).
+  \item \texttt{results/model\_metrics\_<tag>.csv}: train/test RMSE, MAE, \(R^2\), and diagnostic counts (+ run metadata such as \code{start\_year}, \code{test\_ratio}, \code{n\_train}, \code{n\_test}, \code{n\_features}).
   \item \texttt{results/cv\_scores\_<tag>.csv}: fold-level RMSE for time-series CV stability plots.
 \end{itemize}
 
 \paragraph{Reporting artifacts (generated by \texttt{scripts/make\_report\_figures.py} into \texttt{figures/}).}
 \begin{itemize}[leftmargin=*]
-  \item \texttt{figures/predictions\_<tag>\_<model>.csv}: year-by-year predictions used in plots (exported by the reporting script, not by \texttt{main.py} directly).
+  \item \texttt{figures/predictions\_<tag>\_<best\_model>.csv}: year-by-year predictions for the best model in that run (selected by lowest test RMSE).
+  \item \texttt{figures/*.png}: report-ready figures (comparison, CV stability, feature importance, EDA).
 \end{itemize}
+\noindent For Overleaf, I copy the generated PNGs (and any CSVs needed) from repo \texttt{figures/} into the Overleaf folder \texttt{figuresml/}, which is why the report uses \verb|\graphicspath{{figuresml/}}|.
 
 % ==========================================================
 % Implementation (2–3 pages)
@@ -247,7 +279,7 @@ GDP and GDP growth come from WDI \citep{wdi}. Disaster information comes from EM
 Two implementation details matter for correctness. First, disaster years with no recorded events are treated as zeros in the merged master table. Second, damage values are heavy-tailed, so the model uses \(\log(1+\text{damage})\) and damage share of GDP to stabilize scale and reduce the influence of extreme outliers.
 
 \subsection{Feature engineering (how each feature is computed)}
-GDP persistence is represented by $gdp\_growth_{t-1}$ and $gdp\_growth_{t-2}$ plus rolling mean/std features computed from shifted series (so the window ends at $t-1$). Disaster aggregates are transformed (log damage, damage share) and then lagged under strict forecasting. In nowcast mode, the pipeline may additionally use same-year disaster aggregates as a diagnostic upper bound.
+GDP persistence is represented by $gdp\_growth_{t-1}$ and $gdp\_growth_{t-2}$ plus rolling mean/std features computed from shifted series (so the window ends at $t-1$). Disaster aggregates are transformed (log damage, damage share) and then lagged under strict forecasting. In nowcast mode, the pipeline may additionally use same-year covariates if they are part of the feature set (diagnostic upper bound).
 
 The pipeline also includes a smooth time trend (\(year\), \(year^2\)) because long-run macro drift can otherwise be misattributed to other predictors. Time is always known at forecasting time, so including it does not violate the ex-ante rule.
 
@@ -258,7 +290,7 @@ Feature availability differs by configuration because some macro/oil series star
 All models are evaluated with a chronological holdout split (last fraction of years as test). TimeSeriesSplit cross-validation is used to assess stability across folds. Baselines are implemented as first-class models (mean, last-year, rolling mean) to keep comparisons honest. The benchmark code saves summary metrics and CV scores to \texttt{results/}. Per-year predictions used in plots are exported by \texttt{scripts/make\_report\_figures.py} to \texttt{figures/}, making figures and diagnostics reproducible.
 
 \subsection{Hyperparameter policy}
-Hyperparameters are conservative by default because annual time series provide limited observations. Over-tuning can overfit the validation procedure itself, especially when early folds have short training windows. Optional tuning flags exist for selected models; for the headline strict-forecast run we enable Random Forest tuning using train-only time-series CV, while keeping other choices conservative.
+Hyperparameters are conservative by default because annual time series provide limited observations. Over-tuning can overfit the validation procedure itself, especially when early folds have short training windows. Optional tuning flags exist for selected models; for the strict-forecast report run we enable Random Forest tuning using train-only time-series CV, while keeping other choices conservative (see Appendix~\ref{app:hyperparams}).
 
 \subsection{Testing and contracts (what the tests enforce)}
 The test suite is designed to catch silent mistakes that would invalidate the forecasting story (e.g., shuffled years, missing required columns, inconsistent output artifacts). Unit tests check that the master table contains required variables and that key transformations behave as intended. Integration tests run end-to-end and verify that outputs are produced deterministically.
@@ -269,7 +301,9 @@ The test suite is designed to catch silent mistakes that would invalidate the fo
 \section{Evaluation}
 
 \subsection{Headline results with baselines}
-Table~\ref{tab:headline} reports two representative settings using the values produced by the saved \texttt{model\_metrics} outputs.
+Table~\ref{tab:headline} reports two representative settings using the values produced by saved \texttt{model\_metrics} outputs:
+\texttt{results/model\_metrics\_run\_forecast\_strict\_tunerf\_main.csv} and
+\texttt{results/model\_metrics\_run\_nowcast\_ex\_post\_restricted\_oil.csv}.
 
 \begin{table}[H]
 \centering
@@ -283,14 +317,17 @@ Forecast (strict, main) & Gradient Boosting & 1.500 & 0.131 & 1.039 & Roll-3 mea
 Nowcast (ex\_post, restricted\_oil) & Ridge & 1.592 & 0.401 & 1.416 & Mean (train) & 2.102 \\
 \bottomrule
 \end{tabularx}
-\caption{Headline test-set results with baseline comparison.}
+\caption{Headline test-set results with baseline comparison (values from saved \texttt{results/model\_metrics\_*.csv}).}
 \label{tab:headline}
 \end{table}
 
 On the long-sample main specification, Gradient Boosting improves test RMSE by about 25\% relative to the rolling-mean baseline, suggesting incremental predictive content beyond persistence. In restricted nowcast diagnostics, adding oil features yields a large improvement and a substantially higher \(R^2\) on the shorter evaluation window.
 
 \subsection{Restricted nowcast results (with and without oil)}
-Table~\ref{tab:restricted_nowcast} focuses on the restricted nowcast setting and quantifies the improvement from adding oil features. “Severe disaster” years are defined as years whose damage-share proxy exceeds the 85th percentile of the training distribution; because the restricted test window is short, the number of severe test years is small, so the severe-\(R^2\) is not reported.
+Table~\ref{tab:restricted_nowcast} focuses on restricted nowcasts and quantifies the improvement from adding oil features using:
+\texttt{results/model\_metrics\_run\_nowcast\_ex\_post\_restricted.csv} and
+\texttt{results/model\_metrics\_run\_nowcast\_ex\_post\_restricted\_oil.csv}.
+“Severe disaster” years are defined as years whose damage-share proxy exceeds the 85th percentile of the training distribution; because the restricted test window is short, the number of severe test years is small.
 
 \begin{table}[H]
 \centering
@@ -303,7 +340,7 @@ Nowcast (ex\_post, restricted) & Ridge & 2.012 & 0.043 & 2.390 & 3 \\
 Nowcast (ex\_post, restricted\_oil) & Ridge & 1.592 & 0.401 & 2.043 & 3 \\
 \bottomrule
 \end{tabularx}
-\caption{Restricted nowcast performance for Ridge with and without oil features.}
+\caption{Restricted nowcast performance for Ridge with and without oil features (values from saved \texttt{results/model\_metrics\_*.csv}).}
 \label{tab:restricted_nowcast}
 \end{table}
 
@@ -383,7 +420,7 @@ Several diagnostics explain the observed performance differences:
 In the restricted nowcast diagnostics, adding oil features materially improves fit. This is coherent with the economic context: Japan is sensitive to global energy price shocks, and oil variables can proxy broad macro conditions that are not captured by disaster aggregates alone. The improvement does not imply disasters are unimportant; it implies that, for annual GDP growth forecasting, broad macro shocks can be more consistently informative than coarse disaster totals.
 
 \subsection{Limitations (stated as constraints, not excuses)}
-The primary limitation is sample size, which is especially severe in restricted variants and when additional controls reduce availability. Small samples amplify the influence of a handful of years and make cross-validation folds unstable. Another limitation is measurement: EM-DAT damage reporting is heavy-tailed and incomplete, so even with log transforms, noise remains. Finally, the project uses country-year aggregates, which omit sectoral and geographic heterogeneity; richer exposure measures and higher-frequency data would likely be needed to capture disaster transmission more reliably.
+The main limitations are structural rather than implementation-specific. Annual data imply small samples, especially in restricted windows, which increases variance and makes time-series CV unstable. Disaster measures (in particular reported damages) are noisy and heavy-tailed, and annual aggregation blurs within-year timing and sectoral transmission. Finally, rare structural breaks (e.g., 2020) dominate forecast errors and cannot be learned reliably from a handful of crisis observations. To mitigate methodological risks, the pipeline enforces strict timing (t-1 information only), computes rolling features on shifted series, and fits all preprocessing inside sklearn pipelines to prevent leakage.
 
 % ==========================================================
 % Conclusion (0.5 page)
@@ -442,7 +479,7 @@ Arthur E. Hoerl and Robert W. Kennard. ``Ridge Regression: Biased Estimation for
 % ==========================================================
 \clearpage
 \section*{Appendix (supplementary material)}
-The remainder of this document provides supplementary material (reproducibility notes, AI tool disclosure, and extra figures).
+The remainder of this document provides supplementary material (reproducibility notes, hyperparameter details, AI tool disclosure, and extra figures).
 \appendix
 
 \section{Extra EDA figure (raw damage scale)}
@@ -451,15 +488,48 @@ The remainder of this document provides supplementary material (reproducibility 
 {eda_damage_dist_raw}
 {On the raw USD scale, a small number of extreme observations dominate the histogram. This is why log transforms are used for modeling and for readable EDA plots.}
 
+\section{Hyperparameters and tuning grids (as implemented)}
+\label{app:hyperparams}
+\noindent This appendix summarizes the defaults and the optional tuning grids implemented in \texttt{src/models.py}. These are included for transparency; the headline results use conservative choices to reduce overfitting risk in small annual samples.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\linewidth}{l X}
+\toprule
+Model & Defaults / tuning grid used in code \\
+\midrule
+Ridge &
+Default pipeline uses \code{Ridge(alpha=5.0, random\_state=42)} with imputation + standardization. \\
+Random Forest &
+Default pipeline uses \code{n\_estimators=600}, \code{max\_depth=5}, \code{min\_samples\_leaf=2}.
+If \code{--tune-rf}: grid over \code{n\_estimators \{200,400,600\}}, \code{max\_depth \{None,5,10\}}, \code{min\_samples\_split \{2,5\}}, \code{min\_samples\_leaf \{1,2\}} with TimeSeriesSplit CV. \\
+Histogram Gradient Boosting &
+Default uses \code{HistGradientBoostingRegressor(learning\_rate=0.05, max\_depth=3, max\_iter=600, l2\_regularization=0.1, early\_stopping=False, random\_state=42)}.
+If \code{--tune-gb}: grid over
+\code{learning\_rate \{0.03,0.05,0.1\}}, \code{max\_depth \{2,3,4\}}, \code{max\_iter \{300,600,1200\}},
+\code{l2\_regularization \{0.0,0.1,1.0\}}. \\
+MLP &
+Benchmark uses \code{hidden\_layer\_sizes=(32,16)}, \code{alpha=1e-3}, \code{max\_iter=5000}, with \code{early\_stopping=False}, plus imputation + standardization. \\
+\bottomrule
+\end{tabularx}
+\caption{Hyperparameter policy matching the implementation in \texttt{src/models.py}.}
+\end{table}
+
 \section{Reproducibility (optional)}
-\textbf{Minimum run (safe for graders).}
+\textbf{(A) Strict forecast main run used for the report figures (tag: \texttt{run\_forecast\_strict\_tunerf\_main}).}
 \begin{verbatim}
-python3 main.py --only-main --tune-rf
+python3 main.py --mode forecast --covid-mode strict --only-main --tune-rf
 \end{verbatim}
 
-\textbf{Run all configurations.}
+\textbf{(B) Full strict forecast suite (all forecast configurations).}
 \begin{verbatim}
-python3 main.py
+python3 main.py --mode forecast --covid-mode strict --tune-rf
+\end{verbatim}
+
+\textbf{(C) Nowcast ex\_post suite (needed for the nowcast tables).}
+\begin{verbatim}
+python3 main.py --mode nowcast --covid-mode ex_post
 \end{verbatim}
 
 \textbf{Build report figures (copy PNGs into Overleaf folder figuresml/).}
@@ -476,7 +546,8 @@ python3 dashboard/build_dashboard.py --tag run_forecast_strict_tunerf_main
 \begin{itemize}[leftmargin=*]
   \item \texttt{results/model\_metrics\_*.csv}: summary metrics per run.
   \item \texttt{results/cv\_scores\_*.csv}: CV fold RMSE per run.
-  \item \texttt{figures/predictions\_*.csv}: year-by-year predictions.
+  \item \texttt{figures/predictions\_*.csv}: year-by-year test predictions exported by the reporting script.
+  \item \texttt{figures/*.png}: report-ready figures exported by the reporting script.
   \item \texttt{dashboard/*.html}: interactive dashboards.
 \end{itemize}
 
