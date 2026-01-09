@@ -8,16 +8,73 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+<<<<<<< HEAD
 import pytest
+=======
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+
+# This paragraph is for making imports work no matter where the tests are launched from.
+# I add the repo root to sys.path because some test runners start inside tests/,
+# and I still want "from src..." imports to resolve in a predictable way.
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+>>>>>>> 41adbd1 (Update)
 
 from src.features import build_master_table
 
 
+<<<<<<< HEAD
 def test_master_table_is_dataframe_and_not_empty() -> None:
     """I ensure the master table builds and contains a reasonable number of yearly rows."""
     df = build_master_table()
     assert isinstance(df, pd.DataFrame)
     assert df.shape[0] > 10, "Master table seems too small; check data loading and merges."
+=======
+class TestFeatures(unittest.TestCase):
+    def test_master_table_is_dataframe_and_not_empty(self) -> None:
+        # This paragraph is for catching a totally broken pipeline early.
+        # I check "DataFrame + not empty" because a silent failure (bad path, bad merge, empty file)
+        # can still return an object but would make every model result meaningless.
+        df = build_master_table()
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertGreater(len(df), 10)
+
+    def test_master_table_has_core_columns(self) -> None:
+        # This paragraph is for enforcing a minimal contract between feature code and model code.
+        # I do not test exact values here (they can change if the inputs change),
+        # but I require the columns that downstream steps assume exist.
+        df = build_master_table()
+        required = {
+            "year",
+            "gdp",
+            "gdp_growth",
+            "n_events",
+            "total_deaths",
+            "total_damage",
+        }
+        self.assertTrue(required.issubset(set(df.columns)))
+
+    def test_year_is_unique_and_sorted(self) -> None:
+        # This paragraph is for protecting the time-series logic.
+        # Forecasting only makes sense if each year appears once and years are strictly increasing,
+        # otherwise a "time split" can accidentally leak information or mix chronology.
+        df = build_master_table().copy()
+        years = df["year"].astype(int).to_numpy()
+
+        # Unique yearly rows
+        self.assertEqual(len(years), len(set(years)))
+
+        # Strictly increasing (time series)
+        diffs = np.diff(years)
+        self.assertTrue((diffs > 0).all())
+
+    def test_year_has_no_missing_values(self) -> None:
+        # This paragraph is for preventing subtle indexing and merge bugs.
+        # Missing years can break chronological splitting, plotting, and any check that compares periods.
+        df = build_master_table()
+        self.assertFalse(df["year"].isna().any())
+>>>>>>> 41adbd1 (Update)
 
 
 def test_master_table_has_core_columns() -> None:

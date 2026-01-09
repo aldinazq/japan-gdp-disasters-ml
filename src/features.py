@@ -74,7 +74,11 @@ def build_disaster_features(disasters: pd.DataFrame) -> pd.DataFrame:
     return yearly
 
 
+<<<<<<< HEAD
 def build_master_table(mode: Optional[str] = None) -> pd.DataFrame:
+=======
+def build_master_table() -> pd.DataFrame:
+>>>>>>> 41adbd1 (Update)
     """
     I build the master annual dataset by merging:
     - GDP level
@@ -83,6 +87,7 @@ def build_master_table(mode: Optional[str] = None) -> pd.DataFrame:
     - optional macro controls
     - optional oil price
 
+<<<<<<< HEAD
     This paragraph is for API compatibility.
     The `mode` argument is accepted so models.py can call build_master_table(mode=...) consistently,
     but this function currently builds the same master table for both forecast and nowcast.
@@ -92,6 +97,11 @@ def build_master_table(mode: Optional[str] = None) -> pd.DataFrame:
     """
     # This paragraph is for loading core targets and levels.
     # GDP and GDP growth are required; disasters/macros/oil can be partially missing.
+=======
+    This paragraph is for having a single “source of truth” table.
+    All model runs start from the same master table so results are comparable and reproducible.
+    """
+>>>>>>> 41adbd1 (Update)
     gdp = load_gdp_japan_raw()
     growth = load_gdp_growth_japan_raw()
 
@@ -107,6 +117,7 @@ def build_master_table(mode: Optional[str] = None) -> pd.DataFrame:
     # This paragraph is for defining the modeling sample cleanly.
     # I use an inner merge for GDP and GDP growth because the target must exist.
     master = gdp.merge(growth, on="year", how="inner")
+<<<<<<< HEAD
 
     # This paragraph is for adding disaster features.
     # If some years have zero disasters, they might be missing in the aggregated table, so I left-merge and fill.
@@ -117,10 +128,22 @@ def build_master_table(mode: Optional[str] = None) -> pd.DataFrame:
     master["avg_magnitude"] = master["avg_magnitude"].fillna(0.0)
 
     # This paragraph is for optional macro and oil merges.
+=======
+
+    # This paragraph is for treating missing disasters as “no recorded disaster”.
+    # After merging, missing disaster aggregates mean there were no events in EM-DAT for that year.
+    master = master.merge(disaster_features, on="year", how="left")
+    for c in ["n_events", "total_deaths", "total_damage", "avg_magnitude"]:
+        if c in master.columns:
+            master[c] = master[c].fillna(0)
+
+    # This paragraph is for optional controls.
+>>>>>>> 41adbd1 (Update)
     # I keep them as left merges because missing macro/oil values should not delete years.
     master = master.merge(macros, on="year", how="left")
     master = master.merge(oil, on="year", how="left")
 
+<<<<<<< HEAD
     # This paragraph is for numeric stability.
     # I enforce numeric types for key variables so downstream sklearn code behaves consistently.
     master["gdp"] = pd.to_numeric(master["gdp"], errors="coerce")
@@ -129,12 +152,22 @@ def build_master_table(mode: Optional[str] = None) -> pd.DataFrame:
     # This paragraph is for making damages easier to learn from.
     # Raw damages can be extremely skewed, so log(1+damage) is a standard stabilizing transform.
     master["log_total_damage"] = np.log1p(pd.to_numeric(master["total_damage"], errors="coerce").fillna(0))
+=======
+    # This paragraph is for making damages easier to learn from.
+    # Raw damages can be extremely skewed, so log(1+damage) is a standard stabilizing transform.
+    master["log_total_damage"] = np.log1p(master["total_damage"])
+>>>>>>> 41adbd1 (Update)
 
     # This paragraph is for comparability across time.
     # Damages in dollars mean different things when GDP changes, so I scale by GDP as well.
     master["damage_share_gdp"] = np.where(
+<<<<<<< HEAD
         pd.to_numeric(master["gdp"], errors="coerce").fillna(0) > 0,
         pd.to_numeric(master["total_damage"], errors="coerce").fillna(0) / pd.to_numeric(master["gdp"], errors="coerce"),
+=======
+        master["gdp"] > 0,
+        master["total_damage"] / master["gdp"],
+>>>>>>> 41adbd1 (Update)
         0.0,
     )
 

@@ -32,6 +32,7 @@ RESULTS_DIR.mkdir(exist_ok=True)
 
 
 def _print_block(title: str, df: pd.DataFrame) -> None:
+<<<<<<< HEAD
     """
     I print a DataFrame in a readable way in the terminal.
 
@@ -54,6 +55,14 @@ def _print_block(title: str, df: pd.DataFrame) -> None:
         "display.float_format",
         "{:,.4f}".format,
     ):
+=======
+    # This paragraph is for fast manual checking.
+    # I print a clean table so I can immediately see which model wins without opening CSV files.
+    print("\n" + "=" * 90)
+    print(title)
+    print("=" * 90)
+    with pd.option_context("display.max_columns", 200, "display.width", 140):
+>>>>>>> 41adbd1 (Update)
         print(df.to_string(index=False))
 
 
@@ -70,6 +79,7 @@ def _run_one(
     include_macro: bool,
     include_oil: bool,
 ) -> pd.DataFrame:
+<<<<<<< HEAD
     """
     I run one configuration (one “spec”) of the benchmark.
 
@@ -85,6 +95,14 @@ def _run_one(
 
     # This paragraph is the actual pipeline call.
     # run_all_models returns a DataFrame of model-level metrics and also writes CSVs to results/.
+=======
+    # This paragraph is for keeping the forecasting story honest.
+    # I treat "strict" as ex-ante (no covid dummy) and "ex_post" as a robustness run (allow covid dummy).
+    include_covid = (covid_mode == "ex_post")
+
+    # This paragraph is for one single “source of truth” for all outputs.
+    # I let src/models.py write CSV files, so the report, dashboards, and tests all read the same artifacts.
+>>>>>>> 41adbd1 (Update)
     df = run_all_models(
         include_oil=include_oil,
         include_macro=include_macro,
@@ -104,6 +122,7 @@ def _run_one(
 
 
 def build_parser() -> argparse.ArgumentParser:
+<<<<<<< HEAD
     """
     I define the CLI arguments used to control the benchmark.
 
@@ -111,6 +130,10 @@ def build_parser() -> argparse.ArgumentParser:
     - It makes runs reproducible (all settings are explicitly logged in the command you ran).
     - It allows the TA to reproduce outputs with one command.
     """
+=======
+    # This paragraph is for reproducible experiments.
+    # I use CLI flags so anyone (me or the grader) can rerun the exact same configuration.
+>>>>>>> 41adbd1 (Update)
     p = argparse.ArgumentParser(
         description="Japan GDP growth forecasting benchmark (CLI)."
     )
@@ -135,6 +158,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="strict: exclude COVID dummy (ex-ante). ex_post: include COVID dummy (robustness).",
     )
 
+<<<<<<< HEAD
     # This paragraph is for optional tuning switches.
     # Tuning is slower, so I keep it optional.
     p.add_argument(
@@ -159,6 +183,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     # This paragraph is for sample-window control.
     # main-start-year allows restricting even the main run if needed.
+=======
+    # This paragraph is for optional tuning.
+    # I keep tuning off by default because it can be slow and I want the base run to be reliable.
+    p.add_argument("--tune-rf", action="store_true", help="Tune Random Forest using TimeSeriesSplit.")
+    p.add_argument("--tune-gb", action="store_true", help="Tune Gradient Boosting using TimeSeriesSplit.")
+
+    # This paragraph is for transparent evaluation.
+    # A time-based test ratio is easy to explain and matches real forecasting.
+    p.add_argument("--test-ratio", type=float, default=0.2, help="Time-based test split ratio. Default: 0.2")
+
+    # This paragraph is for controlling the time window.
+    # I keep a main run (full sample) and a restricted run (later years) to check stability.
+>>>>>>> 41adbd1 (Update)
     p.add_argument(
         "--main-start-year",
         type=int,
@@ -175,15 +212,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Start year for restricted sample runs (default: 1992).",
     )
 
+<<<<<<< HEAD
     # This paragraph is for quickly running a single baseline configuration.
+=======
+    # This paragraph is for quick grading runs.
+    # Sometimes I only want the clean main benchmark and I skip the extra robustness blocks.
+>>>>>>> 41adbd1 (Update)
     p.add_argument(
         "--only-main",
         action="store_true",
         help="If set, only run the baseline main specification.",
     )
 
+<<<<<<< HEAD
     # This paragraph is for consistent filenames.
     # All results are saved with tags like: {tag-prefix}_{mode}_{covid-mode}_...
+=======
+    # This paragraph is for clean filenames.
+    # I encode settings inside tags so dashboards can infer the run configuration from the CSV name.
+>>>>>>> 41adbd1 (Update)
     p.add_argument(
         "--tag-prefix",
         type=str,
@@ -204,19 +251,29 @@ def main() -> None:
     """
     args = build_parser().parse_args()
 
+<<<<<<< HEAD
     # This paragraph is for stable tag names.
     # I encode mode + covid_mode + tuning flags in the base tag for traceability.
+=======
+    # This paragraph is for traceable outputs.
+    # I build one base tag so every file name tells me the setup (mode + covid + tuning).
+>>>>>>> 41adbd1 (Update)
     base = f"{args.tag_prefix}_{args.mode}_{args.covid_mode}"
     if args.tune_rf:
         base += "_tunerf"
     if args.tune_gb:
         base += "_tunegb"
 
+<<<<<<< HEAD
     # ==========================
     # 1) MAIN baseline run
     # ==========================
     # This paragraph is for the primary benchmark spec.
     # It uses the full sample by default and includes only disaster + lagged GDP features.
+=======
+    # This paragraph is for a clean reference run.
+    # I start with the simplest setting (no extra controls) so comparisons stay meaningful.
+>>>>>>> 41adbd1 (Update)
     _run_one(
         title=f"MAIN | mode={args.mode} | covid={args.covid_mode} | start_year={args.main_start_year}",
         tag=f"{base}_main",
@@ -235,10 +292,15 @@ def main() -> None:
     if args.only_main:
         return
 
+<<<<<<< HEAD
     # ==========================
     # 2) RESTRICTED baseline run
     # ==========================
     # This paragraph is for a robustness check on a more recent sample window.
+=======
+    # This paragraph is for a stability check.
+    # I rerun on a later sub-period because results can look good in long samples but fail in recent decades.
+>>>>>>> 41adbd1 (Update)
     _run_one(
         title=f"RESTRICTED | mode={args.mode} | covid={args.covid_mode} | start_year={args.restricted_start_year}",
         tag=f"{base}_restricted",
@@ -252,11 +314,16 @@ def main() -> None:
         include_oil=False,
     )
 
+<<<<<<< HEAD
     # ==========================
     # 3) RESTRICTED + MACRO run
     # ==========================
     # This paragraph is for testing whether extra macro controls improve performance.
     # I separate this run so the gain is clearly attributed to the macro block.
+=======
+    # This paragraph is for a fairness check about “extra information”.
+    # Adding macro controls can improve performance, so I separate this run to see if the gain is real or just controls.
+>>>>>>> 41adbd1 (Update)
     _run_one(
         title=f"RESTRICTED + MACRO | mode={args.mode} | covid={args.covid_mode} | start_year={args.restricted_start_year}",
         tag=f"{base}_restricted_macro",
@@ -270,10 +337,15 @@ def main() -> None:
         include_oil=False,
     )
 
+<<<<<<< HEAD
     # ==========================
     # 4) RESTRICTED + OIL run
     # ==========================
     # This paragraph is for testing whether oil shocks add predictive power.
+=======
+    # This paragraph is for another robustness check.
+    # Oil shocks can proxy large global macro events, so I test whether it changes generalization on the restricted window.
+>>>>>>> 41adbd1 (Update)
     _run_one(
         title=f"RESTRICTED + OIL | mode={args.mode} | covid={args.covid_mode} | start_year={args.restricted_start_year}",
         tag=f"{base}_restricted_oil",

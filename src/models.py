@@ -60,6 +60,7 @@ def _imputer() -> SimpleImputer:
     I impute missing values because yearly macro series can start late and disasters can be zero/missing.
     I use the median because the data can be skewed (damage, deaths).
     """
+<<<<<<< HEAD
     return SimpleImputer(strategy="median")
 
 
@@ -68,6 +69,20 @@ def _pipeline_linear() -> Pipeline:
     I include a plain linear regression as a transparent baseline.
     This helps show whether non-linear ML methods are actually adding value.
     """
+=======
+    # keep_empty_features=True avoids unstable feature sets across time folds
+    # (otherwise sklearn may drop all-NaN columns in early folds and the pipeline changes shape).
+    try:
+        return SimpleImputer(strategy="median", keep_empty_features=True)
+    except TypeError:
+        # I keep a fallback for older sklearn versions.
+        return SimpleImputer(strategy="median")
+
+
+def _pipeline_linear() -> Pipeline:
+    """I keep a plain linear model as a transparent baseline that is easy to interpret and hard to “cheat” with."""
+    # I scale here because linear models can be sensitive to feature scales (lags vs macro levels, etc.).
+>>>>>>> 41adbd1 (Update)
     return Pipeline(
         [
             ("imputer", _imputer()),
@@ -77,11 +92,16 @@ def _pipeline_linear() -> Pipeline:
     )
 
 
+<<<<<<< HEAD
 def _pipeline_ridge(alpha: float = 5.0) -> Pipeline:
     """
     I include Ridge because annual macro samples are small and multicollinearity can be an issue.
     Ridge stabilizes coefficients compared to OLS.
     """
+=======
+def _pipeline_ridge(alpha: float = 1.0) -> Pipeline:
+    """I use Ridge because lags and rolling stats are correlated, and regularization improves stability."""
+>>>>>>> 41adbd1 (Update)
     return Pipeline(
         [
             ("imputer", _imputer()),
@@ -91,6 +111,7 @@ def _pipeline_ridge(alpha: float = 5.0) -> Pipeline:
     )
 
 
+<<<<<<< HEAD
 def _pipeline_rf(
     n_estimators: int = 600,
     max_depth: Optional[int] = 5,
@@ -106,6 +127,16 @@ def _pipeline_rf(
         min_samples_leaf=int(min_samples_leaf),
         random_state=42,
         **rf_kwargs,
+=======
+def _pipeline_rf(**rf_kwargs) -> Pipeline:
+    """I include Random Forest to capture non-linear patterns while staying robust in small samples."""
+    # I do not scale here because tree models do not need it.
+    return Pipeline(
+        [
+            ("imputer", _imputer()),
+            ("model", RandomForestRegressor(random_state=42, **rf_kwargs)),
+        ]
+>>>>>>> 41adbd1 (Update)
     )
     return Pipeline([("imputer", _imputer()), ("model", rf)])
 
@@ -122,18 +153,41 @@ def _pipeline_hgb(**hgb_kwargs) -> Pipeline:
     hgb_kwargs.pop("n_iter_no_change", None)
     hgb_kwargs["early_stopping"] = False
 
+<<<<<<< HEAD
     hgb = HistGradientBoostingRegressor(
         random_state=42,
         **hgb_kwargs,
+=======
+    # This paragraph is for safe defaults in a short yearly dataset.
+    # I prefer small / regularized settings to reduce overfitting risk.
+    hgb_kwargs.setdefault("max_depth", 2)
+    hgb_kwargs.setdefault("learning_rate", 0.03)
+    hgb_kwargs.setdefault("max_iter", 1200)
+    hgb_kwargs.setdefault("min_samples_leaf", 20)
+    hgb_kwargs.setdefault("l2_regularization", 0.1)
+
+    return Pipeline(
+        [
+            ("imputer", _imputer()),
+            ("model", HistGradientBoostingRegressor(random_state=42, **hgb_kwargs)),
+        ]
+>>>>>>> 41adbd1 (Update)
     )
     return Pipeline([("imputer", _imputer()), ("model", hgb)])
 
 
 def _pipeline_mlp(**mlp_kwargs) -> Pipeline:
     """
+<<<<<<< HEAD
     I include a small neural net as a benchmark.
     I keep it small and stable because yearly datasets are tiny and MLPs can overfit easily.
+=======
+    I include a small neural net as a “stress test” model.
+    I keep it simple and disable early stopping to avoid internal validation splits inside CV folds.
+>>>>>>> 41adbd1 (Update)
     """
+    # This paragraph is for training stability.
+    # MLPs need scaling, otherwise optimization can be unstable and results become random.
     mlp_kwargs = dict(mlp_kwargs)
 
     # This paragraph is for stability and fairness.
@@ -142,8 +196,14 @@ def _pipeline_mlp(**mlp_kwargs) -> Pipeline:
     mlp_kwargs.pop("validation_fraction", None)
     mlp_kwargs["early_stopping"] = False
 
+<<<<<<< HEAD
     # This paragraph is for conservative defaults.
     mlp_kwargs.setdefault("random_state", 42)
+=======
+    # This paragraph is for keeping the model small enough for the sample size.
+    mlp_kwargs.setdefault("hidden_layer_sizes", (32, 16))
+    mlp_kwargs.setdefault("alpha", 1e-3)
+>>>>>>> 41adbd1 (Update)
     mlp_kwargs.setdefault("max_iter", 5000)
 
     mlp = MLPRegressor(**mlp_kwargs)
@@ -151,10 +211,14 @@ def _pipeline_mlp(**mlp_kwargs) -> Pipeline:
 
 
 def _try_pipeline_xgb(**xgb_kwargs) -> Optional[Pipeline]:
+<<<<<<< HEAD
     """
     I optionally include XGBoost if the dependency is available.
     This keeps the project runnable even if xgboost is not installed on the grader machine.
     """
+=======
+    """I add XGBoost only if it is installed, so the project still runs on a clean TA machine."""
+>>>>>>> 41adbd1 (Update)
     try:
         from xgboost import XGBRegressor  # type: ignore
     except Exception:
@@ -198,6 +262,7 @@ def _add_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # This paragraph is for disasters being highly skewed.
     # I use log1p for damage to keep extreme years from dominating the model.
+<<<<<<< HEAD
     if "log_total_damage" not in out.columns:
         out["log_total_damage"] = np.log1p(pd.to_numeric(out["total_damage"], errors="coerce").fillna(0))
 
@@ -215,6 +280,16 @@ def _add_features(df: pd.DataFrame) -> pd.DataFrame:
     if "has_disaster" not in out.columns:
         out["has_disaster"] = (pd.to_numeric(out.get("n_events", 0), errors="coerce").fillna(0) > 0).astype(int)
 
+=======
+    out["log_total_damage"] = np.log1p(pd.to_numeric(out["total_damage"], errors="coerce").fillna(0))
+    out["damage_share_gdp"] = np.where(
+        pd.to_numeric(out["gdp"], errors="coerce").fillna(0) > 0,
+        pd.to_numeric(out["total_damage"], errors="coerce").fillna(0) / pd.to_numeric(out["gdp"], errors="coerce"),
+        0.0,
+    )
+    out["has_disaster"] = (pd.to_numeric(out["n_events"], errors="coerce").fillna(0) > 0).astype(int)
+
+>>>>>>> 41adbd1 (Update)
     # This paragraph is for oil shocks as an optional macro control.
     # I include “change” because levels can be trending and less informative.
     if "oil_price_usd" in out.columns:
@@ -262,7 +337,11 @@ def make_dataset(
         raise ValueError("mode must be 'forecast' or 'nowcast'.")
 
     # This paragraph is for having one “source of truth” dataset, then adding features consistently.
+<<<<<<< HEAD
     df = _add_features(build_master_table(mode=mode))
+=======
+    df = _add_features(build_master_table())
+>>>>>>> 41adbd1 (Update)
 
     # This paragraph is for a compact core feature set:
     # time trend + GDP persistence + lagged disaster aggregates.
@@ -328,6 +407,7 @@ def make_dataset(
     # This paragraph is for safety: I only keep columns that exist in the built table.
     keep = [c for c in feature_cols if c in df.columns]
 
+<<<<<<< HEAD
     # This paragraph is for avoiding “silent no-op” runs.
     # If the user requests macro/oil/covid but the columns are missing, the run may become identical to baseline.
     if include_macro and not any(c in keep for c in macro_features):
@@ -346,6 +426,8 @@ def make_dataset(
             RuntimeWarning,
         )
 
+=======
+>>>>>>> 41adbd1 (Update)
     # This paragraph is for avoiding degenerate rows where the target exists but forecasting features do not.
     df_model = df.dropna(subset=["gdp_growth", "gdp_growth_lag1"]).copy()
     if start_year is not None:
@@ -365,8 +447,35 @@ def make_dataset(
 def time_train_test_split(
     df: pd.DataFrame, X: pd.DataFrame, y: np.ndarray, test_ratio: float = 0.2
 ) -> Tuple[pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray]:
+<<<<<<< HEAD
     """
     I split data in time order because random splits would leak future information.
+=======
+    """
+    I split data in time order because random splits would leak future information.
+    This mirrors how forecasting is evaluated in practice.
+    """
+    n = len(df)
+    split = int(np.floor(n * (1 - test_ratio)))
+    return X.iloc[:split].copy(), X.iloc[split:].copy(), y[:split].copy(), y[split:].copy()
+
+
+def _subset_metrics(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    mask: np.ndarray,
+    *,
+    r2_min_n: int = 5
+) -> Dict[str, float]:
+    """
+    I report subgroup metrics (disaster years vs not).
+    I avoid reporting R2 on tiny subgroups because it becomes misleading and unstable.
+    """
+    mask = np.asarray(mask, dtype=bool)
+    count = int(mask.sum())
+    if count < 2:
+        return {"count": float(count), "RMSE": float("nan"), "MAE": float("nan"), "R2": float("nan")}
+>>>>>>> 41adbd1 (Update)
 
     Why it exists:
     - Forecast evaluation must respect time ordering (train on past, test on future).
@@ -437,6 +546,11 @@ def tune_gradient_boosting(
     tscv = TimeSeriesSplit(n_splits=n_splits_eff)
 
     base = _pipeline_hgb()
+<<<<<<< HEAD
+=======
+
+    # This paragraph is for a small, reasonable grid (annual sample is small, so I avoid huge searches).
+>>>>>>> 41adbd1 (Update)
     param_grid = {
         "model__learning_rate": [0.03, 0.05, 0.1],
         "model__max_depth": [2, 3, 4],
@@ -453,8 +567,12 @@ def tune_gradient_boosting(
     grid.fit(X_train, y_train)
 
     # This paragraph is for reproducibility: I save best params so results can be explained later.
+<<<<<<< HEAD
     out = _resolve_output_dir(output_dir)
     pd.DataFrame([grid.best_params_]).to_csv(out / f"best_params_gradient_boosting_{tag}.csv", index=False)
+=======
+    pd.DataFrame([grid.best_params_]).to_csv(RESULTS_DIR / f"best_params_gradient_boosting_{tag}.csv", index=False)
+>>>>>>> 41adbd1 (Update)
     return grid.best_estimator_
 
 
@@ -540,18 +658,32 @@ def time_series_cv_report(
 
 def _compute_severe_threshold_from_train(dmg_share_train: np.ndarray, severe_q: float = 0.85) -> Tuple[float, int]:
     """
+<<<<<<< HEAD
     I define “severe disaster years” based on the training distribution of damage_share_gdp.
     This avoids peeking at test information when building subgroup thresholds.
+=======
+    I define “severe disasters” using TRAIN data only.
+    This section exists to avoid peeking at the test period when I set thresholds.
+>>>>>>> 41adbd1 (Update)
     """
     x = np.asarray(dmg_share_train, dtype=float)
     x = x[np.isfinite(x)]
     x = x[x > 0]
     n_pos = int(len(x))
 
+<<<<<<< HEAD
     # This paragraph is for robust small-sample behavior.
     # If there are too few positive years, I use 0 (no severe group).
     if n_pos < 3:
         return 0.0, n_pos
+=======
+    # This paragraph is for stability: if there are too few positive observations,
+    # I fall back to the overall distribution.
+    if n_pos >= 5:
+        thr = float(np.quantile(pos, severe_q))
+    else:
+        thr = float(np.quantile(dmg_share_train, severe_q)) if dmg_share_train.size else 0.0
+>>>>>>> 41adbd1 (Update)
 
     thr = float(np.quantile(x, float(severe_q)))
     thr = max(thr, 0.0)
@@ -585,6 +717,12 @@ def run_all_models(
 
     # This paragraph is for a realistic evaluation: train is earlier years, test is later years.
     X_train, X_test, y_train, y_test = time_train_test_split(df, X, y, test_ratio=test_ratio)
+<<<<<<< HEAD
+=======
+
+    # This paragraph is for diagnostics: CV results help explain why a model wins/loses.
+    _ = time_series_cv_report(X_train, y_train, tag=tag)
+>>>>>>> 41adbd1 (Update)
 
     # This paragraph is for diagnostics: CV results help explain why a model wins/loses.
     _ = time_series_cv_report(X_train, y_train, tag=tag, output_dir=output_dir)
@@ -603,19 +741,35 @@ def run_all_models(
             a[bad] = fallback
         return a
 
+<<<<<<< HEAD
     # This paragraph is for subgroup evaluation on the test set.
     # These masks let me report performance specifically on disaster years (and severe/multi-event years).
     n_events_te = pd.to_numeric(X_test.get("n_events_lag1", np.zeros(len(X_test))), errors="coerce").fillna(0).to_numpy()
+=======
+    # -------------------------
+    # This section is for defining “post-disaster” subsets on the test set,
+    # so I can report whether forecasts are worse in disaster-related periods.
+    # -------------------------
+    n_events_te = pd.to_numeric(
+        X_test.get("n_events_lag1", pd.Series([0] * len(X_test))), errors="coerce"
+    ).fillna(0).to_numpy()
+
+>>>>>>> 41adbd1 (Update)
     dmg_share_te = pd.to_numeric(
         X_test.get("damage_share_gdp_lag1", np.zeros(len(X_test))), errors="coerce"
     ).fillna(0).to_numpy()
     mask_any = n_events_te > 0
 
+<<<<<<< HEAD
     dmg_share_tr = pd.to_numeric(
         X_train.get("damage_share_gdp_lag1", np.zeros(len(X_train))), errors="coerce"
     ).fillna(0).to_numpy()
 
     severe_q = 0.85
+=======
+    # This paragraph is for defining “severe” in a train-only way (no test peeking).
+    severe_q = 0.75
+>>>>>>> 41adbd1 (Update)
     severe_thr, train_pos_damage_count = _compute_severe_threshold_from_train(dmg_share_tr, severe_q=severe_q)
     mask_severe = (n_events_te > 0) & (dmg_share_te >= severe_thr)
 
@@ -667,6 +821,7 @@ def run_all_models(
                 "test_RMSE_multi_event": float(m_multi["RMSE"]),
                 "test_MAE_multi_event": float(m_multi["MAE"]),
                 "test_R2_multi_event": float(m_multi["R2"]),
+<<<<<<< HEAD
                 # This paragraph is for perfect traceability: every row remembers the run configuration.
                 "tag": tag,
                 "mode": mode,
@@ -678,6 +833,8 @@ def run_all_models(
                 "n_train": int(len(y_train)),
                 "n_test": int(len(y_test)),
                 "n_features": int(X_train.shape[1]),
+=======
+>>>>>>> 41adbd1 (Update)
             }
         )
 
@@ -760,6 +917,10 @@ def run_all_models(
 
     # -------------------------
     # This section is for optional XGBoost.
+<<<<<<< HEAD
+=======
+    # It only runs when the dependency exists.
+>>>>>>> 41adbd1 (Update)
     # -------------------------
     xgb = _try_pipeline_xgb(
         n_estimators=600,

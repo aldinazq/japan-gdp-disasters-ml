@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 """I build a self-contained HTML dashboard that summarizes model metrics, predictions, CV stability, and disaster diagnostics."""
+=======
+"""I build a self-contained HTML dashboard that summarizes model performance, out-of-sample predictions, and post-disaster diagnostics."""
+>>>>>>> 41adbd1 (Update)
 from __future__ import annotations
 
 import argparse
@@ -7,35 +11,61 @@ import io
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+<<<<<<< HEAD
 from typing import Dict, Optional, Tuple
+=======
+from typing import Dict, Optional
+>>>>>>> 41adbd1 (Update)
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+<<<<<<< HEAD
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
+=======
+
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.inspection import permutation_importance
+>>>>>>> 41adbd1 (Update)
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+<<<<<<< HEAD
 # ----------------------------
 # Paths + import safety
 # ----------------------------
 # This paragraph is for making the script work from any working directory (including the grader's setup).
 # I add the project root to sys.path so imports from src/ still work even if I run this file directly.
+=======
+# This paragraph is for stable imports when I run the dashboard from different folders.
+# I add the project root to sys.path so "from src..." works on my machine and on the TA machine.
+>>>>>>> 41adbd1 (Update)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+<<<<<<< HEAD
 # This paragraph is for keeping all outputs in predictable folders, so the report and dashboard can reuse them.
+=======
+# This paragraph is for predictable file locations.
+# I keep all reads in results/ and all outputs in dashboard/ so the repo stays tidy.
+>>>>>>> 41adbd1 (Update)
 RESULTS_DIR = PROJECT_ROOT / "results"
 DASHBOARD_DIR = PROJECT_ROOT / "dashboard"
 DASHBOARD_DIR.mkdir(exist_ok=True)
 
+<<<<<<< HEAD
 # This paragraph is for coherence: I reuse the exact same dataset code as main.py,
 # so the dashboard is consistent with the benchmark metrics.
+=======
+# This paragraph is for consistency.
+# I reuse the exact dataset builder from src/models.py so the dashboard always matches the model run.
+>>>>>>> 41adbd1 (Update)
 from src.models import make_dataset, time_train_test_split  # noqa: E402
 
 
@@ -162,6 +192,7 @@ def _infer_config_from_tag(tag: str, *, default_test_ratio: float = 0.2) -> RunC
     )
 
 
+<<<<<<< HEAD
 def _config_from_metrics(metrics_df: pd.DataFrame, tag: str, *, default_test_ratio: float = 0.2) -> RunConfig:
     # This paragraph is for perfect reproducibility.
     # Instead of inferring flags from the tag string (which can drift over time),
@@ -243,6 +274,8 @@ def _apply_best_params_if_available(pipe: Pipeline, model_name: str, tag: str) -
     return pipe
 
 
+=======
+>>>>>>> 41adbd1 (Update)
 # ----------------------------
 # Model factory (keeps dashboard coherent with the benchmark)
 # ----------------------------
@@ -324,10 +357,17 @@ def _pipeline_for(model_name: str) -> Optional[Pipeline]:
 
 
 # ----------------------------
+<<<<<<< HEAD
 # Plot builders
 # ----------------------------
 def _plot_model_comparison(metrics_df: pd.DataFrame) -> str:
     # This paragraph is for a quick overview plot (test RMSE by model).
+=======
+# Plots (embedded into HTML)
+# ----------------------------
+def _plot_model_comparison(metrics_df: pd.DataFrame) -> str:
+    # This paragraph is for a quick “who wins” visual that matches the metrics table.
+>>>>>>> 41adbd1 (Update)
     df = metrics_df.copy().sort_values("test_RMSE", ascending=True)
 
     fig = plt.figure()
@@ -339,7 +379,11 @@ def _plot_model_comparison(metrics_df: pd.DataFrame) -> str:
 
 
 def _plot_actual_vs_pred(pred_df: pd.DataFrame, model_name: str) -> str:
+<<<<<<< HEAD
     # This paragraph is for showing the prediction quality over the test years.
+=======
+    # This paragraph is for the main dashboard story: do predictions track reality in the test window?
+>>>>>>> 41adbd1 (Update)
     fig = plt.figure()
     plt.plot(pred_df["year"], pred_df["actual"], label="Actual")
     plt.plot(pred_df["year"], pred_df["pred"], label=model_name)
@@ -351,6 +395,7 @@ def _plot_actual_vs_pred(pred_df: pd.DataFrame, model_name: str) -> str:
     return _fig_to_base64(fig)
 
 
+<<<<<<< HEAD
 def _plot_abs_error_by_year(pred_df: pd.DataFrame) -> str:
     # This paragraph is for highlighting which specific years drive the overall RMSE.
     df = pred_df.copy().sort_values("year")
@@ -364,10 +409,16 @@ def _plot_abs_error_by_year(pred_df: pd.DataFrame) -> str:
 
 def _plot_errors_vs_disaster_proxy(pred_df: pd.DataFrame, X_test: pd.DataFrame) -> str:
     # This paragraph is for a sanity check: if disasters matter, errors might correlate with a disaster proxy.
+=======
+def _plot_errors_vs_disaster_proxy(pred_df: pd.DataFrame, X_test: pd.DataFrame) -> Optional[str]:
+    # This paragraph is for “debugging with intuition”.
+    # If errors increase after bigger disasters, this plot gives a fast hint without heavy analysis.
+>>>>>>> 41adbd1 (Update)
     if "damage_share_gdp_lag1" in X_test.columns:
-        x = pd.to_numeric(X_test["damage_share_gdp_lag1"], errors="coerce").to_numpy()
+        x = pd.to_numeric(X_test["damage_share_gdp_lag1"], errors="coerce").fillna(0).to_numpy()
         xlab = "damage_share_gdp_lag1"
     elif "n_events_lag1" in X_test.columns:
+<<<<<<< HEAD
         x = pd.to_numeric(X_test["n_events_lag1"], errors="coerce").to_numpy()
         xlab = "n_events_lag1"
     else:
@@ -375,12 +426,19 @@ def _plot_errors_vs_disaster_proxy(pred_df: pd.DataFrame, X_test: pd.DataFrame) 
         plt.text(0.02, 0.5, "No disaster proxy found in X_test.", fontsize=12)
         plt.axis("off")
         return _fig_to_base64(fig)
+=======
+        x = pd.to_numeric(X_test["n_events_lag1"], errors="coerce").fillna(0).to_numpy()
+        xlab = "n_events_lag1"
+    else:
+        return None
+>>>>>>> 41adbd1 (Update)
 
     fig = plt.figure()
     plt.scatter(x, pred_df["error"].to_numpy())
     plt.axhline(0.0, linewidth=1)
     plt.xlabel(xlab)
     plt.ylabel("Error (actual - pred)")
+<<<<<<< HEAD
     plt.title("Errors vs disaster proxy")
     return _fig_to_base64(fig)
 
@@ -496,10 +554,55 @@ def _subset_metrics(y_true: np.ndarray, y_pred: np.ndarray, mask: np.ndarray, *,
     out["RMSE"] = _rmse(yt, yp)
     out["MAE"] = float(mean_absolute_error(yt, yp))
     if len(yt) >= r2_min_n:
+=======
+    plt.title("Errors vs disaster proxy (t-1)")
+    return _fig_to_base64(fig)
+
+
+def _top_permutation_importance(model: Pipeline, X: pd.DataFrame, y: np.ndarray, n_repeats: int = 30) -> pd.DataFrame:
+    # This paragraph is for interpretability.
+    # Permutation importance is not perfect in small samples, but it gives a clear ranking for the report.
+    res = permutation_importance(model, X, y, n_repeats=n_repeats, random_state=42, scoring="neg_root_mean_squared_error")
+    df = pd.DataFrame({"feature": X.columns, "importance": res.importances_mean, "std": res.importances_std})
+    return df.sort_values("importance", ascending=False).reset_index(drop=True)
+
+
+def _plot_top_features(imp_df: pd.DataFrame, top_k: int = 12) -> str:
+    # This paragraph is for a “report-ready” figure that fits in one page.
+    top = imp_df.head(top_k).copy()
+    fig = plt.figure()
+    plt.barh(top["feature"][::-1], top["importance"][::-1])
+    plt.xlabel("Permutation importance (ΔRMSE)")
+    plt.title(f"Top {top_k} features (permutation importance)")
+    return _fig_to_base64(fig)
+
+
+# ----------------------------
+# Extra dashboard “plus-value”
+# ----------------------------
+def _subset_metrics(y_true: np.ndarray, y_pred: np.ndarray, mask: np.ndarray, *, r2_min_n: int = 5) -> Dict[str, float]:
+    # This paragraph is for honest subgroup reporting.
+    # Subgroup metrics on tiny samples are unstable, so I avoid showing R² unless there are enough points.
+    mask = np.asarray(mask, dtype=bool)
+    n = int(mask.sum())
+    if n < 2:
+        return {"count": float(n), "RMSE": float("nan"), "MAE": float("nan"), "R2": float("nan")}
+
+    yt = y_true[mask]
+    yp = y_pred[mask]
+    out = {
+        "count": float(n),
+        "RMSE": _rmse(yt, yp),
+        "MAE": float(mean_absolute_error(yt, yp)),
+        "R2": float("nan"),
+    }
+    if n >= r2_min_n:
+>>>>>>> 41adbd1 (Update)
         out["R2"] = _safe_r2(yt, yp)
     return out
 
 
+<<<<<<< HEAD
 def _severe_threshold_from_train(dmg_share_train: np.ndarray, *, q: float = 0.85) -> float:
     # This paragraph is for avoiding test leakage.
     # I define “severe” using TRAIN only (positive values), then apply it to the test set.
@@ -510,6 +613,18 @@ def _severe_threshold_from_train(dmg_share_train: np.ndarray, *, q: float = 0.85
     if pos.size < 3:
         return 0.0
     thr = float(np.quantile(pos, float(q)))
+=======
+def _severe_threshold_from_train(dmg_share_train: np.ndarray, *, q: float = 0.75) -> float:
+    # This paragraph is for avoiding test leakage.
+    # I define “severe” using TRAIN only, then apply it to the test set.
+    x = np.asarray(dmg_share_train, dtype=float)
+    x = x[np.isfinite(x)]
+    pos = x[x > 0]
+    if pos.size >= 5:
+        thr = float(np.quantile(pos, q))
+    else:
+        thr = float(np.quantile(x, q)) if x.size else 0.0
+>>>>>>> 41adbd1 (Update)
     return max(thr, 0.0)
 
 
@@ -622,6 +737,7 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
 
     pred_df = pd.DataFrame({"year": years_test, "actual": y_test, "pred": yhat_test, "error": (y_test - yhat_test)})
     pred_plot_b64 = _plot_actual_vs_pred(pred_df, chosen_name)
+<<<<<<< HEAD
     abs_err_plot_b64 = _plot_abs_error_by_year(pred_df)
     err_plot_b64 = _plot_errors_vs_disaster_proxy(pred_df, X_test)
 
@@ -629,6 +745,14 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
     gdp_plot_b64 = _plot_gdp_growth(df_model, y)
     dis_agg_b64 = _plot_disaster_aggregates(df_model)
     dmg_raw_b64, dmg_log_b64 = _plot_damage_dists(df_model)
+=======
+
+    err_plot_b64 = _plot_errors_vs_disaster_proxy(pred_df, X_test)
+
+    # This paragraph is for post-disaster diagnostics.
+    # I want to know if the model is worse exactly when disasters happened (using t-1 info).
+    n_events = pd.to_numeric(X_test.get("n_events_lag1", pd.Series([0] * len(X_test))), errors="coerce").fillna(0).to_numpy()
+>>>>>>> 41adbd1 (Update)
 
     # CV stability (optional)
     cv_df = _read_cv_scores(tag)
@@ -650,6 +774,7 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
     # Post-disaster years: n_events_lag1 > 0
     mask_any = n_events_te > 0
 
+<<<<<<< HEAD
     # Severe disasters: threshold computed on TRAIN only (q=0.85) using positive damage_share values
     thr = _severe_threshold_from_train(dmg_share_tr, q=0.85)
     mask_sev = (n_events_te > 0) & (dmg_share_te >= thr)
@@ -662,6 +787,9 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
     diag_multi = _subset_metrics(y_test, yhat_test, mask_multi, r2_min_n=5)
 
     diag_table = pd.DataFrame(
+=======
+    post_df = pd.DataFrame(
+>>>>>>> 41adbd1 (Update)
         [
             {"subset": "Post-disaster years (n_events_lag1>0)", **diag_any},
             {"subset": "Severe disasters (train Q85 on positive damage_share_gdp_lag1)", **diag_sev, "threshold": thr},
@@ -669,9 +797,40 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
         ]
     )
 
+<<<<<<< HEAD
     run_scan = _scan_run_comparison()
 
     # This paragraph is for a clean, single-file HTML output.
+=======
+    # This paragraph is for interpretability.
+    # I compute permutation importance on the test set so it reflects out-of-sample behavior.
+    imp_df = _top_permutation_importance(chosen_pipe, X_test, y_test, n_repeats=30)
+    imp_plot_b64 = _plot_top_features(imp_df, top_k=12)
+    imp_table_html = _df_to_html_table(imp_df.head(20))
+
+    # This paragraph is for seeing “which run was best overall”.
+    runs_df = _scan_run_comparison()
+    runs_table = _df_to_html_table(runs_df, max_rows=60) if not runs_df.empty else "<p>No other runs found.</p>"
+
+    # This paragraph is for a simple baseline comparison readers understand.
+    # I compute the gain relative to the rolling mean baseline if it exists in the metrics file.
+    base_roll = metrics_df[metrics_df["model"].astype(str) == "baseline_roll3_mean"]
+    base_roll_rmse = float(base_roll["test_RMSE"].iloc[0]) if not base_roll.empty else float("nan")
+    gain = (base_roll_rmse - summary["test_RMSE"]) if np.isfinite(base_roll_rmse) else float("nan")
+
+    # This paragraph is for predictable output filenames.
+    out_dir = PROJECT_ROOT / "dashboard"
+    out_dir.mkdir(exist_ok=True)
+    out_html = Path(output_html) if output_html else out_dir / f"dashboard_{tag}.html"
+
+    def img_tag(b64: str, *, alt: str) -> str:
+        return (
+            f'<img src="data:image/png;base64,{b64}" alt="{alt}" '
+            f'style="max-width:100%;height:auto;border:1px solid #eee;border-radius:10px;">'
+        )
+
+    # This paragraph is for having a simple, readable dashboard that is easy to grade quickly.
+>>>>>>> 41adbd1 (Update)
     html = f"""
 <!doctype html>
 <html lang="en">
@@ -784,6 +943,7 @@ def build_dashboard(tag: Optional[str], output_html: Optional[str]) -> Path:
 </html>
 """
 
+<<<<<<< HEAD
     out = Path(output_html) if output_html else (DASHBOARD_DIR / f"dashboard_{tag}.html")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
@@ -799,6 +959,24 @@ def main() -> None:
 
     p = build_dashboard(tag=args.tag, output_html=args.out)
     print(f"[build_dashboard] wrote: {p}")
+=======
+
+def parse_args() -> argparse.Namespace:
+    # This paragraph is for a simple CLI.
+    # I keep only tag + output to make the dashboard easy to run during grading.
+    p = argparse.ArgumentParser(description="Build an HTML dashboard from model_metrics_*.csv.")
+    p.add_argument("--tag", type=str, default=None, help="Tag used in results/model_metrics_<tag>.csv (default: latest).")
+    p.add_argument("--output", type=str, default=None, help="Output html path (default: dashboard/dashboard_<tag>.html).")
+    return p.parse_args()
+
+
+def main() -> None:
+    # This paragraph is for one clean entry point.
+    # I print the output path so I can open the HTML directly after running the script.
+    args = parse_args()
+    out = build_dashboard(args.tag, args.output)
+    print(f"Dashboard written to: {out}")
+>>>>>>> 41adbd1 (Update)
 
 
 if __name__ == "__main__":

@@ -6,11 +6,22 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+<<<<<<< HEAD
 import pytest
+=======
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+
+# This paragraph is for making imports stable across machines and runners.
+# I add the repo root to sys.path so "src" imports work even if the working directory is tests/.
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+>>>>>>> 41adbd1 (Update)
 
 from src.models import make_dataset, time_train_test_split
 
 
+<<<<<<< HEAD
 def test_make_dataset_alignment_and_types() -> None:
     """I ensure df, X, y align perfectly and are numeric-friendly for sklearn."""
     df, X, y = make_dataset(
@@ -20,19 +31,86 @@ def test_make_dataset_alignment_and_types() -> None:
         start_year=None,
         mode="forecast",
     )
+=======
+class TestPipeline(unittest.TestCase):
+    def test_make_dataset_alignment(self) -> None:
+        # This paragraph is for preventing “silent misalignment”.
+        # In time-series projects, it is easy to keep df and X the same length but shifted by one year.
+        # That kind of bug produces believable metrics but it is fundamentally wrong.
+        df, X, y = make_dataset(include_oil=False, mode="forecast")
+>>>>>>> 41adbd1 (Update)
 
     assert isinstance(df, pd.DataFrame)
     assert isinstance(X, pd.DataFrame)
     assert isinstance(y, np.ndarray)
 
+<<<<<<< HEAD
     assert len(df) == len(X) == len(y), "df, X, y must have the same number of rows."
     assert X.shape[0] > 10, "Dataset seems too small; check feature building or start_year restriction."
+=======
+        # This paragraph is for avoiding index-based mistakes later (plots, merges, df.loc).
+        # If the indices differ, you can accidentally compare different years without noticing.
+        self.assertTrue(df.index.equals(X.index))
+>>>>>>> 41adbd1 (Update)
 
     # The modeling pipeline expects to use year as a feature (and tests rely on it).
     assert "year" in X.columns, "X must include 'year' for time ordering checks."
 
+<<<<<<< HEAD
     # y should be finite for training/testing; df has been cleaned with dropna on key columns.
     assert np.isfinite(y).all(), "y contains non-finite values; check target construction."
+=======
+    def test_time_split_no_shuffle(self) -> None:
+        # This paragraph is for enforcing chronological evaluation.
+        # If the split shuffles, the test set is no longer “future” years and the evaluation becomes leakage.
+        df, X, y = make_dataset(include_oil=False, mode="forecast")
+
+        # This paragraph is for compatibility across small refactors.
+        # I inspect the signature because the split function can be written in two common styles,
+        # and I want the test to focus on the behavior (chronology), not the exact argument list.
+        sig = inspect.signature(time_train_test_split)
+        param_names = list(sig.parameters.keys())
+
+        if len(param_names) >= 3 and param_names[0] in {"df", "dataframe"}:
+            X_train, X_test, y_train, y_test = time_train_test_split(df, X, y, test_ratio=0.2)
+        else:
+            X_train, X_test, y_train, y_test = time_train_test_split(X, y, test_ratio=0.2)
+
+        self.assertGreater(len(X_train), 0)
+        self.assertGreater(len(X_test), 0)
+
+        # This paragraph is for a strong “future-after-past” check using the year feature itself.
+        # I require max(train_year) < min(test_year), which is stricter than just checking lengths.
+        self.assertLess(int(X_train["year"].max()), int(X_test["year"].min()))
+
+        # y lengths match
+        self.assertEqual(len(y_train), len(X_train))
+        self.assertEqual(len(y_test), len(X_test))
+
+    def test_forecast_setup_has_lag1_target_feature(self) -> None:
+        # This paragraph is for ensuring the task is really a forecast setup.
+        # If lagged GDP is missing, the model may be under-specified or the feature builder changed silently.
+        _, X, _ = make_dataset(include_oil=False, mode="forecast")
+        self.assertIn("gdp_growth_lag1", X.columns)
+
+    def test_optional_macro_signature_if_present(self) -> None:
+        # This paragraph is for graceful support of optional parameters.
+        # Some versions include macro controls and start_year filtering; others do not.
+        # I only test what is available so the test suite stays useful across iterations.
+        sig = inspect.signature(make_dataset)
+
+        kwargs = {"include_oil": False, "mode": "forecast"}
+        if "include_macro" in sig.parameters:
+            kwargs["include_macro"] = True
+        if "start_year" in sig.parameters:
+            kwargs["start_year"] = 1976
+
+        df, X, y = make_dataset(**kwargs)
+        self.assertGreater(len(df), 5)
+        self.assertIn("year", X.columns)
+        self.assertEqual(len(df), len(X))
+        self.assertEqual(len(df), len(y))
+>>>>>>> 41adbd1 (Update)
 
 
 def test_make_dataset_contains_key_forecast_features() -> None:
